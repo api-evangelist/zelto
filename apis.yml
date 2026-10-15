@@ -1,0 +1,28 @@
+aid: zelto
+name: Zelto
+description: 'Zelto is a company surfaced via the API Evangelist harvest backlog (source: new-submission)
+  and added to the network as a stub for full-pipeline profiling.'
+url: https://raw.githubusercontent.com/api-evangelist/zelto/refs/heads/main/apis.yml
+x-type: company
+x-source: harvest:new-submission
+x-tier: stub
+x-tier-reason: harvest
+specificationVersion: '0.20'
+created: '2026-10-15'
+modified: '2026-10-15'
+tags:
+- Company
+apis: []
+maintainers:
+- FN: Kin Lane
+  email: kin@apievangelist.com
+- FN: APIs.json
+  email: info@apis.io
+common:
+- type: Website
+  url: https://zelto.ai
+- type: Documentation
+  url: https://docs.zelto.ai/api-reference
+x-submission-notes: Production QA for voice AI agents; REST API, llms.txt
+x-submission-probe: root 200, api-reference 200, llms.txt 200 text, soft-404 OK
+x-submitted-by: a@zelto.ai (email, 2026-10-15)
