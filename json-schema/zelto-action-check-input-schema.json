@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/api-evangelist/zelto/main/json-schema/zelto-action-check-input-schema.json",
+  "title": "ActionCheckInput",
+  "x-generated": "2026-10-15",
+  "x-method": "derived",
+  "x-generator": "derive-json-schema.py",
+  "x-source": "openapi/zelto-openapi.json#/components/schemas/ActionCheckInput",
+  "type": "object",
+  "required": [
+    "agentId",
+    "referenceData",
+    "comparisons"
+  ],
+  "properties": {
+    "agentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "referenceData": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "comparisons": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "expectedPath",
+          "actualPath"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "expectedPath": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "actualPath": {
+            "type": "string",
+            "maxLength": 120
+          }
+        }
+      }
+    },
+    "tools": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "status"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "succeeded",
+              "failed",
+              "pending",
+              "not_called"
+            ]
+          }
+        }
+      },
+      "description": "Tool keys must be unique and distinct from comparison keys. Keys are case-sensitive and trimmed. Send one authoritative status per execution prerequisite."
+    },
+    "requiredTools": {
+      "type": "array",
+      "maxItems": 20,
+      "uniqueItems": true,
+      "default": [],
+      "description": "Caller-owned prerequisite tool keys, independent of reported executions. Every listed tool must be reported as succeeded. Omitted required tools produce missing and block approval. Use only pre-action prerequisites, not the action being authorized. Defaults to an empty list for compatibility.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80
+      }
+    }
+  }
+}

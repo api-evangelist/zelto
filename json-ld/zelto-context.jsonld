@@ -1,0 +1,394 @@
+{
+  "@context": {
+    "@vocab": "https://zelto.ai/schema#",
+    "schema": "https://schema.org/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "zelto": "https://zelto.ai/schema#",
+    "Error": "zelto:Error",
+    "error": {
+      "@id": "zelto:error",
+      "@type": "xsd:string"
+    },
+    "message": {
+      "@id": "zelto:message",
+      "@type": "xsd:string"
+    },
+    "details": {
+      "@id": "zelto:details"
+    },
+    "ExperimentCreate": "zelto:ExperimentCreate",
+    "name": {
+      "@id": "zelto:name",
+      "@type": "xsd:string"
+    },
+    "description": {
+      "@id": "zelto:description",
+      "@type": "xsd:string"
+    },
+    "agentId": {
+      "@id": "zelto:agentId",
+      "@type": "xsd:string"
+    },
+    "armAVersionId": {
+      "@id": "zelto:armAVersionId",
+      "@type": "xsd:string"
+    },
+    "armBVersionId": {
+      "@id": "zelto:armBVersionId",
+      "@type": "xsd:string"
+    },
+    "armAName": {
+      "@id": "zelto:armAName",
+      "@type": "xsd:string"
+    },
+    "armBName": {
+      "@id": "zelto:armBName",
+      "@type": "xsd:string"
+    },
+    "cohortFilters": {
+      "@id": "zelto:cohortFilters",
+      "@container": "@list"
+    },
+    "assignmentUnit": {
+      "@id": "zelto:assignmentUnit"
+    },
+    "expectedArmAPercent": {
+      "@id": "zelto:expectedArmAPercent",
+      "@type": "xsd:integer"
+    },
+    "outcomeMetricIds": {
+      "@id": "zelto:outcomeMetricIds",
+      "@container": "@list"
+    },
+    "primaryMetricId": {
+      "@id": "zelto:primaryMetricId",
+      "@type": "xsd:string"
+    },
+    "monitorGroupId": {
+      "@id": "zelto:monitorGroupId",
+      "@type": "xsd:string"
+    },
+    "newMonitorGroupName": {
+      "@id": "zelto:newMonitorGroupName",
+      "@type": "xsd:string"
+    },
+    "notifications": {
+      "@id": "zelto:notifications"
+    },
+    "stableRoutingConfirmed": {
+      "@id": "zelto:stableRoutingConfirmed"
+    },
+    "ProvisionedOrganization": "zelto:ProvisionedOrganization",
+    "id": {
+      "@id": "zelto:id",
+      "@type": "xsd:string"
+    },
+    "slug": {
+      "@id": "zelto:slug",
+      "@type": "xsd:string"
+    },
+    "orgUrl": {
+      "@id": "zelto:orgUrl",
+      "@type": "@id"
+    },
+    "ownerUserId": {
+      "@id": "zelto:ownerUserId",
+      "@type": "xsd:string"
+    },
+    "created": {
+      "@id": "zelto:created"
+    },
+    "Agent": "zelto:Agent",
+    "externalId": {
+      "@id": "zelto:externalId",
+      "@type": "xsd:string"
+    },
+    "provider": {
+      "@id": "zelto:provider",
+      "@type": "xsd:string"
+    },
+    "createdAt": {
+      "@id": "zelto:createdAt",
+      "@type": "xsd:dateTime"
+    },
+    "updatedAt": {
+      "@id": "zelto:updatedAt",
+      "@type": "xsd:dateTime"
+    },
+    "Conversation": "zelto:Conversation",
+    "receiverId": {
+      "@id": "zelto:receiverId",
+      "@type": "xsd:string"
+    },
+    "referenceId": {
+      "@id": "zelto:referenceId",
+      "@type": "xsd:string"
+    },
+    "source": {
+      "@id": "zelto:source",
+      "@type": "xsd:string"
+    },
+    "endedReason": {
+      "@id": "zelto:endedReason",
+      "@type": "xsd:string"
+    },
+    "cost": {
+      "@id": "zelto:cost",
+      "@type": "xsd:string"
+    },
+    "Transcript": "zelto:Transcript",
+    "conversationId": {
+      "@id": "zelto:conversationId",
+      "@type": "xsd:string"
+    },
+    "recordingUrl": {
+      "@id": "zelto:recordingUrl",
+      "@type": "xsd:string"
+    },
+    "durationSeconds": {
+      "@id": "zelto:durationSeconds",
+      "@type": "xsd:decimal"
+    },
+    "content": {
+      "@id": "zelto:content"
+    },
+    "systemPrompt": {
+      "@id": "zelto:systemPrompt",
+      "@type": "xsd:string"
+    },
+    "CustomerMetric": "zelto:CustomerMetric",
+    "organizationId": {
+      "@id": "zelto:organizationId",
+      "@type": "xsd:string"
+    },
+    "metricId": {
+      "@id": "zelto:metricId",
+      "@type": "xsd:string"
+    },
+    "label": {
+      "@id": "zelto:label",
+      "@type": "xsd:string"
+    },
+    "verdict": {
+      "@id": "zelto:verdict",
+      "@type": "xsd:string"
+    },
+    "score": {
+      "@id": "zelto:score",
+      "@type": "xsd:decimal"
+    },
+    "note": {
+      "@id": "zelto:note",
+      "@type": "xsd:string"
+    },
+    "Review": "zelto:Review",
+    "entityType": {
+      "@id": "zelto:entityType",
+      "@type": "xsd:string"
+    },
+    "entityId": {
+      "@id": "zelto:entityId",
+      "@type": "xsd:string"
+    },
+    "status": {
+      "@id": "zelto:status",
+      "@type": "xsd:string"
+    },
+    "reviewerId": {
+      "@id": "zelto:reviewerId",
+      "@type": "xsd:string"
+    },
+    "aiModel": {
+      "@id": "zelto:aiModel",
+      "@type": "xsd:string"
+    },
+    "aiGeneratedAt": {
+      "@id": "zelto:aiGeneratedAt",
+      "@type": "xsd:dateTime"
+    },
+    "notes": {
+      "@id": "zelto:notes",
+      "@type": "xsd:string"
+    },
+    "Company": "zelto:Company",
+    "logoUrl": {
+      "@id": "zelto:logoUrl",
+      "@type": "@id"
+    },
+    "Bucket": "zelto:Bucket",
+    "type": {
+      "@id": "zelto:type",
+      "@type": "xsd:string"
+    },
+    "filters": {
+      "@id": "zelto:filters"
+    },
+    "Finding": "zelto:Finding",
+    "title": {
+      "@id": "zelto:title",
+      "@type": "xsd:string"
+    },
+    "priority": {
+      "@id": "zelto:priority",
+      "@type": "xsd:string"
+    },
+    "tags": {
+      "@id": "zelto:tags",
+      "@container": "@list"
+    },
+    "findingType": {
+      "@id": "zelto:findingType",
+      "@type": "xsd:integer"
+    },
+    "assigneeUserId": {
+      "@id": "zelto:assigneeUserId",
+      "@type": "xsd:string"
+    },
+    "FindingConversation": "zelto:FindingConversation",
+    "findingId": {
+      "@id": "zelto:findingId",
+      "@type": "xsd:string"
+    },
+    "alreadyExisted": {
+      "@id": "zelto:alreadyExisted",
+      "@type": "xsd:boolean"
+    },
+    "Comment": "zelto:Comment",
+    "body": {
+      "@id": "zelto:body",
+      "@type": "xsd:string"
+    },
+    "annotationStartMs": {
+      "@id": "zelto:annotationStartMs",
+      "@type": "xsd:integer"
+    },
+    "annotationEndMs": {
+      "@id": "zelto:annotationEndMs",
+      "@type": "xsd:integer"
+    },
+    "authorUserId": {
+      "@id": "zelto:authorUserId",
+      "@type": "xsd:string"
+    },
+    "CallIngestTurn": "zelto:CallIngestTurn",
+    "role": {
+      "@id": "zelto:role",
+      "@type": "xsd:string"
+    },
+    "startSeconds": {
+      "@id": "zelto:startSeconds",
+      "@type": "xsd:decimal"
+    },
+    "endSeconds": {
+      "@id": "zelto:endSeconds",
+      "@type": "xsd:decimal"
+    },
+    "words": {
+      "@id": "zelto:words",
+      "@container": "@list"
+    },
+    "CallIngest": "zelto:CallIngest",
+    "agent": {
+      "@id": "zelto:agent"
+    },
+    "version": {
+      "@id": "zelto:version",
+      "@type": "xsd:string"
+    },
+    "companyExternalId": {
+      "@id": "zelto:companyExternalId",
+      "@type": "xsd:string"
+    },
+    "call": {
+      "@id": "zelto:call"
+    },
+    "transcript": {
+      "@id": "zelto:transcript"
+    },
+    "metadata": {
+      "@id": "zelto:metadata"
+    },
+    "versionConfig": {
+      "@id": "zelto:versionConfig"
+    },
+    "PageEnvelope": "zelto:PageEnvelope",
+    "data": {
+      "@id": "zelto:data",
+      "@container": "@list"
+    },
+    "nextCursor": {
+      "@id": "zelto:nextCursor",
+      "@type": "xsd:string"
+    },
+    "ActionCheckInput": "zelto:ActionCheckInput",
+    "referenceData": {
+      "@id": "zelto:referenceData"
+    },
+    "comparisons": {
+      "@id": "zelto:comparisons",
+      "@container": "@list"
+    },
+    "tools": {
+      "@id": "zelto:tools",
+      "@container": "@list"
+    },
+    "requiredTools": {
+      "@id": "zelto:requiredTools",
+      "@container": "@list"
+    },
+    "ActionCheckDecision": "zelto:ActionCheckDecision",
+    "decision": {
+      "@id": "zelto:decision",
+      "@type": "xsd:string"
+    },
+    "allowed": {
+      "@id": "zelto:allowed",
+      "@type": "xsd:boolean"
+    },
+    "checks": {
+      "@id": "zelto:checks",
+      "@container": "@list"
+    },
+    "CustomerCostReport": "zelto:CustomerCostReport",
+    "rows": {
+      "@id": "zelto:rows",
+      "@container": "@list"
+    },
+    "failures": {
+      "@id": "zelto:failures",
+      "@container": "@list"
+    },
+    "monitors": {
+      "@id": "zelto:monitors",
+      "@container": "@list"
+    },
+    "window": {
+      "@id": "zelto:window"
+    },
+    "CustomerTransferReport": "zelto:CustomerTransferReport",
+    "monitor": {
+      "@id": "zelto:monitor"
+    },
+    "agents": {
+      "@id": "zelto:agents",
+      "@container": "@list"
+    },
+    "questions": {
+      "@id": "zelto:questions",
+      "@container": "@list"
+    },
+    "RegisterAgentVersion": "zelto:RegisterAgentVersion",
+    "config": {
+      "@id": "zelto:config",
+      "@type": "@id"
+    }
+  },
+  "@type": "schema:Dataset",
+  "schema:name": "Zelto API JSON-LD context",
+  "schema:description": "A JSON-LD @context for the objects Zelto's own API contract declares: one class per component schema, one property per declared field, typed from the contract. Derived by script (derive-json-ld.py, 2026-10-15) from openapi/zelto-openapi.json.",
+  "dcterms:created": "2026-10-15",
+  "dcterms:source": [
+    "openapi/zelto-openapi.json"
+  ]
+}

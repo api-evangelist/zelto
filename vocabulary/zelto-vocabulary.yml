@@ -1,0 +1,172 @@
+generated: '2026-10-15'
+method: derived
+generator: derive-vocabulary.py
+source: openapi/zelto-openapi.json
+vocabulary:
+  name: Zelto Domain Vocabulary
+  description: 'Terms declared by Zelto''s own API contract: its resource groups, objects and enumerations, with the contract''s definitions.
+    Derived, not authored.'
+  version: '2026-10-15'
+  terms:
+  - term: Agents
+    definition: Voice and chat bots normalised through Zelto's ingestion pipeline.
+    tags:
+    - Resource Group
+    source: openapi/zelto-openapi.json
+  - term: Conversations
+    definition: Calls, chats, and voicemails — plus their transcripts and recordings.
+    tags:
+    - Resource Group
+    source: openapi/zelto-openapi.json
+  - term: Customer Metrics
+    definition: Customer-provided evaluations attached to a call (requires metrics enabled).
+    tags:
+    - Resource Group
+    source: openapi/zelto-openapi.json
+  - term: Reviews
+    definition: Human review state for conversations.
+    tags:
+    - Resource Group
+    source: openapi/zelto-openapi.json
+  - term: Buckets
+    definition: Reviewer routing — group conversations for batched review.
+    tags:
+    - Resource Group
+    source: openapi/zelto-openapi.json
+  - term: Companies
+    definition: Clients or brands your agents work for, and their logos.
+    tags:
+    - Resource Group
+    source: openapi/zelto-openapi.json
+  - term: Findings
+    definition: Structured issues discovered during analysis, with optional conversation attachments and comments.
+    tags:
+    - Resource Group
+    source: openapi/zelto-openapi.json
+  - term: Experiments
+    definition: Prospective measurement of two externally routed prompt versions across independent monitor outcomes.
+    tags:
+    - Resource Group
+    source: openapi/zelto-openapi.json
+  - term: Organizations
+    definition: Headless org provisioning. Requires an admin/service API key (not a read-only org-scoped customer key).
+    tags:
+    - Resource Group
+    source: openapi/zelto-openapi.json
+  - term: Error
+    definition: 'Object declared by the contract with fields: error, message, details.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/Error
+  - term: ExperimentCreate
+    definition: 'Object declared by the contract with fields: name, description, agentId, armAVersionId, armBVersionId, armAName, armBName, cohortFilters,
+      assignmentUnit, expectedArmAPercent, outcomeMetricIds, primaryMetricId. (4 more)'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/ExperimentCreate
+  - term: ProvisionedOrganization
+    definition: 'Object declared by the contract with fields: id, slug, orgUrl, ownerUserId, created.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/ProvisionedOrganization
+  - term: Agent
+    definition: 'Object declared by the contract with fields: id, name, description, externalId, provider, createdAt, updatedAt.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/Agent
+  - term: Conversation
+    definition: 'Object declared by the contract with fields: id, agentId, receiverId, name, referenceId, source, endedReason, cost, createdAt,
+      updatedAt.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/Conversation
+  - term: Transcript
+    definition: 'Object declared by the contract with fields: conversationId, recordingUrl, durationSeconds, content, systemPrompt, createdAt.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/Transcript
+  - term: CustomerMetric
+    definition: 'Object declared by the contract with fields: id, organizationId, conversationId, agentId, metricId, label, externalId, verdict,
+      score, note, source, createdAt. (1 more)'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/CustomerMetric
+  - term: Review
+    definition: 'Object declared by the contract with fields: id, entityType, entityId, status, reviewerId, aiModel, aiGeneratedAt, notes, createdAt,
+      updatedAt.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/Review
+  - term: Company
+    definition: 'Object declared by the contract with fields: id, name, logoUrl, createdAt, updatedAt.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/Company
+  - term: Bucket
+    definition: 'Object declared by the contract with fields: id, organizationId, agentId, name, type, filters, createdAt, updatedAt.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/Bucket
+  - term: Finding
+    definition: 'Object declared by the contract with fields: id, title, description, status, priority, tags, findingType, assigneeUserId, createdAt,
+      updatedAt.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/Finding
+  - term: FindingConversation
+    definition: 'Object declared by the contract with fields: findingId, conversationId, createdAt, alreadyExisted.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/FindingConversation
+  - term: Comment
+    definition: 'Object declared by the contract with fields: id, body, type, annotationStartMs, annotationEndMs, authorUserId, createdAt.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/Comment
+  - term: CallIngestTurn
+    definition: 'Object declared by the contract with fields: role, content, startSeconds, endSeconds, words.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/CallIngestTurn
+  - term: CallIngest
+    definition: 'Zelto''s canonical call upload shape (`X-Zelto-Provider: zelto`). Provide either `agent.externalId` (find-or-create) or `agentId`
+      (attach to an existing agent).'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/CallIngest
+  - term: PageEnvelope
+    definition: 'Object declared by the contract with fields: data, nextCursor.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/PageEnvelope
+  - term: ActionCheckInput
+    definition: 'Object declared by the contract with fields: agentId, referenceData, comparisons, tools, requiredTools.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/ActionCheckInput
+  - term: ActionCheckDecision
+    definition: 'Object declared by the contract with fields: decision, allowed, checks.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/ActionCheckDecision
+  - term: CustomerCostReport
+    definition: 'Object declared by the contract with fields: rows, failures, monitors, window.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/CustomerCostReport
+  - term: CustomerTransferReport
+    definition: 'Object declared by the contract with fields: monitor, window, rows, agents, questions.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/CustomerTransferReport
+  - term: AgentVersionConfig
+    definition: Complete version context as a JSON object, up to 64 KiB serialized as UTF-8. Can include llm, stt, tts, tools, workflows, retrieval,
+      and custom settings. Records context only; does not deploy or execute this configuration. Do not include secrets.
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/AgentVersionConfig
+  - term: RegisterAgentVersion
+    definition: 'Object declared by the contract with fields: version, systemPrompt, config.'
+    tags:
+    - Object
+    source: openapi/zelto-openapi.json#/components/schemas/RegisterAgentVersion

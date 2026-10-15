@@ -1,0 +1,216 @@
+openapi: 3.2.0
+info:
+  title: Zelto REST Customer Metrics API
+  version: v1
+  description: Programmatic access to your Zelto organization. Every endpoint is scoped to the organization the API key belongs to. Mint a key at Settings → Integrations → API Call Upload.
+servers:
+- url: https://api.zelto.ai
+  description: Production
+security:
+- bearerAuth: []
+tags:
+- name: Customer Metrics
+  description: Customer-provided evaluations attached to a call (requires metrics enabled).
+paths:
+  /v1/conversations/{id}/customer-metrics:
+    get:
+      summary: List a call's customer metrics
+      operationId: listCustomerMetrics
+      tags:
+      - Customer Metrics
+      description: List the customer-provided metrics attached to a call. Requires metrics to be enabled for the organization.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: The call's customer metrics.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CustomerMetric'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Metrics are not enabled for this organization.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      summary: Submit a customer metric
+      operationId: createCustomerMetric
+      tags:
+      - Customer Metrics
+      description: 'Create or replace a customer-provided metric for a call. Send a `verdict` (pass/fail) and/or a `score` (0–100), and optionally map it to one of your Zelto metrics with `metricId`. Idempotent on `(conversation, label)`: resubmitting the same `label` replaces the prior value. Requires metrics to be enabled for the organization.'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - label
+              description: Provide at least one of `verdict` or `score`.
+              properties:
+                label:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: The customer's name for this metric, e.g. "Compliance Check".
+                verdict:
+                  type: string
+                  enum:
+                  - pass
+                  - fail
+                score:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                note:
+                  type: string
+                  maxLength: 5000
+                metricId:
+                  type: string
+                  format: uuid
+                  description: Map this customer metric to one of your Zelto metrics on the call's agent.
+                externalId:
+                  type: string
+                  maxLength: 255
+                  description: Your own id for this record.
+      responses:
+        '201':
+          description: The created (or replaced) customer metric.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerMetric'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Metrics are not enabled, or the mapped metric is not in your organization.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  responses:
+    Unauthorized:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found in your organization.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationFailed:
+      description: Request body failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    CustomerMetric:
+      type: object
+      required:
+      - id
+      - organizationId
+      - conversationId
+      - agentId
+      - label
+      - source
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        conversationId:
+          type: string
+          format: uuid
+        agentId:
+          type: string
+          format: uuid
+        metricId:
+          type: string
+          format: uuid
+          nullable: true
+          description: The Zelto metric this customer metric maps to, if any.
+        label:
+          type: string
+          description: The customer's name for the metric, e.g. "Compliance Check".
+        externalId:
+          type: string
+          nullable: true
+          description: The customer's own id for this record.
+        verdict:
+          type: string
+          enum:
+          - pass
+          - fail
+          nullable: true
+        score:
+          type: number
+          nullable: true
+          description: 0–100. Null when only a pass/fail verdict was sent.
+        note:
+          type: string
+          nullable: true
+        source:
+          type: string
+          description: Provenance of the record, e.g. `api`.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message, e.g. Unauthorized or Validation failed.
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'Send `Authorization: Bearer YOUR_API_KEY`. The key resolves to a single organization.'

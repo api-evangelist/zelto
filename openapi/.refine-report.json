@@ -1,0 +1,31 @@
+{
+  "provider": "zelto",
+  "sources": [
+    "zelto-openapi.json"
+  ],
+  "outputs": [
+    "zelto-action-checks-api-openapi.yml",
+    "zelto-agents-api-openapi.yml",
+    "zelto-buckets-api-openapi.yml",
+    "zelto-companies-api-openapi.yml",
+    "zelto-conversations-api-openapi.yml",
+    "zelto-customer-metrics-api-openapi.yml",
+    "zelto-experiments-api-openapi.yml",
+    "zelto-findings-api-openapi.yml",
+    "zelto-organizations-api-openapi.yml",
+    "zelto-reports-api-openapi.yml",
+    "zelto-reviews-api-openapi.yml"
+  ],
+  "archived": [
+    "archived openapi/zelto-openapi.json"
+  ],
+  "errors": [],
+  "warnings": [],
+  "notes": [
+    "zelto-openapi.json: upgraded openapi 3.1.0 -> OpenAPI 3.2.0",
+    "zelto-openapi.json: declared missing tag: Action checks",
+    "zelto-openapi.json: declared missing tag: Reports",
+    "apis.yml register: written (+11 apis, 11 total)"
+  ],
+  "skipped": []
+}

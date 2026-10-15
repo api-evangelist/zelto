@@ -1,0 +1,467 @@
+openapi: 3.2.0
+info:
+  title: Zelto REST Conversations API
+  version: v1
+  description: Programmatic access to your Zelto organization. Every endpoint is scoped to the organization the API key belongs to. Mint a key at Settings → Integrations → API Call Upload.
+servers:
+- url: https://api.zelto.ai
+  description: Production
+security:
+- bearerAuth: []
+tags:
+- name: Conversations
+  description: Calls, chats, and voicemails — plus their transcripts and recordings.
+paths:
+  /v1/conversations:
+    get:
+      summary: List conversations
+      operationId: listConversations
+      tags:
+      - Conversations
+      parameters:
+      - name: agentId
+        in: query
+        schema:
+          type: string
+          format: uuid
+        description: Filter to one agent.
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Page of conversations.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/PageEnvelope'
+                - type: object
+                  properties:
+                    data:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/conversations/{id}:
+    get:
+      summary: Get a conversation
+      operationId: getConversation
+      tags:
+      - Conversations
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: The conversation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/conversations/{id}/transcript:
+    get:
+      summary: Get a conversation transcript
+      operationId: getTranscript
+      tags:
+      - Conversations
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: The transcript with content and (if available) recording URL.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transcript'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /webhooks/calls:
+    servers:
+    - url: https://ingest.zelto.ai
+      description: AWS ingestion endpoint
+    post:
+      summary: Upload a call
+      operationId: uploadCall
+      tags:
+      - Conversations
+      description: 'Provider-agnostic call ingestion. POST a call in Zelto''s canonical shape (the default), or a native Vapi/Retell webhook payload selected with the `X-Zelto-Provider` header. The delivery is acknowledged immediately and processed asynchronously into a conversation + transcript. Deduplicated by call id: re-uploading the same call updates it in place and never double-charges. Non-terminal native events (e.g. Vapi `status-update`) are accepted and ignored.'
+      parameters:
+      - name: X-Zelto-Provider
+        in: header
+        required: false
+        description: Which schema the request body uses. Defaults to `zelto` (the canonical CallIngest shape, also used by `livekit`). Native `vapi` / `retell` webhook payloads are also accepted.
+        schema:
+          type: string
+          enum:
+          - zelto
+          - vapi
+          - retell
+          - livekit
+          default: zelto
+      requestBody:
+        required: true
+        description: When `X-Zelto-Provider` is `zelto` (or omitted), the canonical CallIngest body. When `vapi` / `retell`, that provider's native webhook payload.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallIngest'
+      responses:
+        '200':
+          description: Accepted for processing. Also returned for duplicate deliveries and dropped (non-terminal) events.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - received
+                properties:
+                  received:
+                    type: boolean
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/recording-uploads:
+    servers:
+    - url: https://ingest.zelto.ai
+      description: AWS ingestion endpoint
+    post:
+      summary: Create a direct recording upload
+      operationId: createRecordingUpload
+      tags:
+      - Conversations
+      description: Creates a short-lived, organization-scoped S3 upload target for a local audio recording. PUT bytes to uploadUrl, then pass id as call.recordingUploadId to /webhooks/calls. Recording bytes bypass the Zelto API service.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - contentType
+              - sizeBytes
+              properties:
+                contentType:
+                  type: string
+                  example: audio/wav
+                sizeBytes:
+                  type: integer
+                  minimum: 1
+                  maximum: 1073741824
+                filename:
+                  type: string
+      responses:
+        '201':
+          description: Upload target
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  uploadUrl:
+                    type: string
+                    format: uri
+                  headers:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  expiresAt:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+components:
+  schemas:
+    CallIngestTurn:
+      type: object
+      required:
+      - role
+      - content
+      properties:
+        role:
+          type: string
+          enum:
+          - user
+          - assistant
+          - system
+          - tool
+        content:
+          type: string
+          minLength: 1
+        startSeconds:
+          type: number
+          minimum: 0
+        endSeconds:
+          type: number
+          minimum: 0
+        words:
+          type: array
+          description: Optional word-level audio timing used for synchronized transcript playback.
+          items:
+            type: object
+            required:
+            - word
+            - startSeconds
+            properties:
+              word:
+                type: string
+                minLength: 1
+              startSeconds:
+                type: number
+                minimum: 0
+              endSeconds:
+                type: number
+                minimum: 0
+    PageEnvelope:
+      type: object
+      required:
+      - data
+      - nextCursor
+      properties:
+        data:
+          type: array
+          items: {}
+        nextCursor:
+          type: string
+          nullable: true
+    Conversation:
+      type: object
+      required:
+      - id
+      - agentId
+      - name
+      - source
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        agentId:
+          type: string
+          format: uuid
+        receiverId:
+          type: string
+          format: uuid
+          nullable: true
+        name:
+          type: string
+        referenceId:
+          type: string
+          nullable: true
+        source:
+          type: string
+          description: Where the call came from, e.g. `vapi`, `retell`, `speechify`, `livekit`, `upload`.
+        endedReason:
+          type: string
+          nullable: true
+        cost:
+          type: string
+          nullable: true
+          description: Provider-reported cost in dollars, as a string for precision.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CallIngest:
+      type: object
+      required:
+      - call
+      description: 'Zelto''s canonical call upload shape (`X-Zelto-Provider: zelto`). Provide either `agent.externalId` (find-or-create) or `agentId` (attach to an existing agent).'
+      properties:
+        agent:
+          type: object
+          description: Find-or-create an agent by your own id. Required unless `agentId` is given.
+          properties:
+            externalId:
+              type: string
+              minLength: 1
+            name:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: Used only when the agent is first created.
+        agentId:
+          type: string
+          format: uuid
+          description: Attach to an existing Zelto agent. Takes precedence over `agent.externalId`.
+        version:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Release label of the agent that actually handled this call. Optional for ingestion; send it on every call for reliable experiments. Case-sensitive, 1–255 characters after trimming. The same agent and label reuse a version; a new label creates one on the first processed call. Keep the agent ID stable and change this label for prompt or pipeline changes. Preserve the original label on retries. This is a top-level field, not metadata.version. See /docs/agent-versions.
+        companyExternalId:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Your stable per-call id for the client or brand this call belongs to. When Companies is enabled, Zelto maps it to a company; otherwise the agent's default company is used when available.
+        call:
+          type: object
+          required:
+          - externalId
+          properties:
+            externalId:
+              type: string
+              minLength: 1
+              description: Your call id. Dedup key — re-uploading the same id updates the call in place.
+            startedAt:
+              type: string
+              format: date-time
+            endedAt:
+              type: string
+              format: date-time
+            durationSeconds:
+              type: integer
+              minimum: 0
+              description: Derived from startedAt/endedAt when omitted.
+            endedReason:
+              type: string
+              maxLength: 100
+            cost:
+              type: number
+              minimum: 0
+              description: Cost in dollars.
+            recordingUrl:
+              type: string
+              maxLength: 2048
+            recordingUploadId:
+              type: string
+              format: uuid
+              description: Opaque id returned by POST /v1/recording-uploads after direct upload of a local recording. Mutually exclusive with recordingUrl.
+            customer:
+              type: object
+              properties:
+                number:
+                  type: string
+                  maxLength: 50
+                  description: Inbound caller number; used to resolve a receiver.
+                name:
+                  type: string
+                  maxLength: 255
+        transcript:
+          type: object
+          required:
+          - turns
+          properties:
+            turns:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/CallIngestTurn'
+        systemPrompt:
+          type: string
+          description: Actual system prompt of the version that handled this call. A leading system transcript turn is used if omitted. Available text is captured when a version is first observed, or fills a missing prompt later; an existing prompt snapshot is not overwritten. A version label alone does not supply a prompt.
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Free-form metadata stored on the conversation.
+        versionConfig:
+          allOf:
+          - $ref: '#/components/schemas/AgentVersionConfig'
+          description: Context for the version that handled this call. Requires the version field. Captured when the version is observed; does not overwrite an existing configuration snapshot. Use config when registering through POST /v1/agents/{id}/versions.
+    Transcript:
+      type: object
+      required:
+      - conversationId
+      - createdAt
+      properties:
+        conversationId:
+          type: string
+          format: uuid
+        recordingUrl:
+          type: string
+          nullable: true
+          description: URL to the recording. Re-hosted by Zelto when the provider's URL would otherwise expire. For organizations under a BAA (PHI mode) this is an authenticated endpoint — GET it with the same Bearer API key and follow the 302 to a short-lived signed URL.
+        durationSeconds:
+          type: number
+          nullable: true
+        content:
+          description: Turn-by-turn transcript JSON.
+        systemPrompt:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message, e.g. Unauthorized or Validation failed.
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    AgentVersionConfig:
+      type: object
+      additionalProperties: true
+      description: Complete version context as a JSON object, up to 64 KiB serialized as UTF-8. Can include llm, stt, tts, tools, workflows, retrieval, and custom settings. Records context only; does not deploy or execute this configuration. Do not include secrets.
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque pagination cursor. Pass the `nextCursor` returned by the previous page.
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Items per page. Default 50, max 200.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+  responses:
+    Unauthorized:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found in your organization.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationFailed:
+      description: Request body failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'Send `Authorization: Bearer YOUR_API_KEY`. The key resolves to a single organization.'

@@ -1,0 +1,292 @@
+openapi: 3.2.0
+info:
+  title: Zelto REST Companies API
+  version: v1
+  description: Programmatic access to your Zelto organization. Every endpoint is scoped to the organization the API key belongs to. Mint a key at Settings → Integrations → API Call Upload.
+servers:
+- url: https://api.zelto.ai
+  description: Production
+security:
+- bearerAuth: []
+tags:
+- name: Companies
+  description: Clients or brands your agents work for, and their logos.
+paths:
+  /v1/companies:
+    get:
+      summary: List companies
+      description: Companies (clients or brands your agents work for) in the key's organization, newest first.
+      operationId: listCompanies
+      tags:
+      - Companies
+      parameters:
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Page of companies.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/PageEnvelope'
+                - type: object
+                  properties:
+                    data:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Company'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/companies/{id}:
+    get:
+      summary: Get a company
+      operationId: getCompany
+      tags:
+      - Companies
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: The company.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      summary: Update a company
+      description: Set the company's logo to an image you host, or send `null` to go back to the default mark. To upload an image file instead, use `PUT /v1/companies/{id}/logo`.
+      operationId: updateCompany
+      tags:
+      - Companies
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - logoUrl
+              additionalProperties: false
+              properties:
+                logoUrl:
+                  type: string
+                  format: uri
+                  maxLength: 2048
+                  nullable: true
+                  description: A public `https` URL of the logo image. It is stored as-is and loaded by the viewer's browser; if it can't be loaded, the default mark is shown. `null` removes the logo.
+                  example: https://example.com/acme-logo.png
+      responses:
+        '200':
+          description: The updated company.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/companies/{id}/logo:
+    put:
+      summary: Upload a company logo
+      description: Upload a PNG, JPEG, or WebP image of up to 2 MB as the company's logo. Send the raw image bytes, or `multipart/form-data` with the image in a `file` field. The image type is detected from its contents. Square images look best. SVG is not accepted as an upload; host it yourself and set it with `PATCH /v1/companies/{id}`.
+      operationId: uploadCompanyLogo
+      tags:
+      - Companies
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+          image/webp:
+            schema:
+              type: string
+              format: binary
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: The company with its new logo.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+        '400':
+          description: Empty body, or a multipart body without a `file` field.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          description: The image is larger than 2 MB.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: The bytes are not a PNG, JPEG, or WebP image.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Remove a company logo
+      description: Remove the logo. The company goes back to its default mark.
+      operationId: deleteCompanyLogo
+      tags:
+      - Companies
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: The company without a logo.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  schemas:
+    PageEnvelope:
+      type: object
+      required:
+      - data
+      - nextCursor
+      properties:
+        data:
+          type: array
+          items: {}
+        nextCursor:
+          type: string
+          nullable: true
+    Company:
+      type: object
+      required:
+      - id
+      - name
+      - logoUrl
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        logoUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: 'The uploaded or customer-supplied logo. `null` means the dashboard shows the default mark: the company''s initials.'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message, e.g. Unauthorized or Validation failed.
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque pagination cursor. Pass the `nextCursor` returned by the previous page.
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Items per page. Default 50, max 200.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+  responses:
+    Unauthorized:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found in your organization.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationFailed:
+      description: Request body failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'Send `Authorization: Bearer YOUR_API_KEY`. The key resolves to a single organization.'

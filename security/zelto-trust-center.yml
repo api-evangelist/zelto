@@ -1,0 +1,21 @@
+generated: '2026-10-15'
+method: searched
+probe: true
+source: https://trust.inc/zelto
+url: https://trust.inc/zelto
+certifications:
+- SOC 2
+- ISO 27001
+- PCI DSS
+- HIPAA
+- GDPR
+evidence:
+- source: https://trust.inc/zelto
+  keywords:
+  - soc 2
+  - soc2
+  - iso 27001
+  - pci dss
+  - hipaa
+  - trust center
+  - gdpr

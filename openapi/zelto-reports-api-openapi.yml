@@ -1,0 +1,494 @@
+openapi: 3.2.0
+info:
+  title: Zelto REST Reports API
+  version: v1
+  description: Programmatic access to your Zelto organization. Every endpoint is scoped to the organization the API key belongs to. Mint a key at Settings → Integrations → API Call Upload.
+servers:
+- url: https://api.zelto.ai
+  description: Production
+security:
+- bearerAuth: []
+tags:
+- name: Reports
+paths:
+  /v1/reports/monitors/{reportId}:
+    get:
+      tags:
+      - Reports
+      summary: Get a saved monitor report
+      description: Aggregate selected monitors for inclusive local dates (maximum 31 days), defaulting to the previous complete Monday–Sunday. Applies the saved company and metadata scope. Affected rate uses current-version evaluated calls as denominator. Requires Reports. Use deliveryId for an immutable historical snapshot.
+      operationId: getMonitorReport
+      parameters:
+      - name: reportId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        schema:
+          type: string
+          format: date
+      - name: deliveryId
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: format
+        in: query
+        schema:
+          type: string
+          enum:
+          - json
+          - csv
+          - pdf
+          default: json
+      - name: locale
+        in: query
+        description: PDF language; defaults to the request locale.
+        schema:
+          type: string
+          enum:
+          - en-us
+          - es
+          - pt
+      responses:
+        '200':
+          description: Report snapshot, CSV or PDF export
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  schemaVersion:
+                    type: integer
+                    const: 1
+                  reportId:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+                  generatedAt:
+                    type: string
+                    format: date-time
+                  rateDenominator:
+                    type: string
+                    const: evaluated
+                  period:
+                    type: object
+                    properties:
+                      from:
+                        type: string
+                        format: date
+                      to:
+                        type: string
+                        format: date
+                      timezone:
+                        type: string
+                      since:
+                        type: string
+                        format: date-time
+                      until:
+                        type: string
+                        format: date-time
+                  scope:
+                    type: object
+                    properties:
+                      companyId:
+                        type:
+                        - string
+                        - 'null'
+                        format: uuid
+                      metadataFilters:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            key:
+                              type: string
+                            op:
+                              type: string
+                            value:
+                              type: string
+                      companyName:
+                        type:
+                        - string
+                        - 'null'
+                        description: Company name captured at generation; absent on older snapshots.
+                  rows:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        population:
+                          type: integer
+                          minimum: 0
+                        evaluated:
+                          type: integer
+                          minimum: 0
+                        unscored:
+                          type: integer
+                          minimum: 0
+                        withoutResult:
+                          type: integer
+                          minimum: 0
+                        affected:
+                          type: integer
+                          minimum: 0
+                        monitorId:
+                          type: string
+                          format: uuid
+                        name:
+                          type: string
+                        version:
+                          type:
+                          - integer
+                          - 'null'
+                        enabled:
+                          type: boolean
+                        status:
+                          type: string
+                          enum:
+                          - available
+                          - missing
+                        sampleRate:
+                          type:
+                          - number
+                          - 'null'
+                        affectedLabel:
+                          type:
+                          - string
+                          - 'null'
+                        affectedRate:
+                          type:
+                          - number
+                          - 'null'
+                        averageScore:
+                          type:
+                          - number
+                          - 'null'
+            text/csv:
+              schema:
+                type: string
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Invalid dates or format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Reports feature unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Report or delivery not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Report generation unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/reports/costs:
+    get:
+      operationId: getCostReport
+      tags:
+      - Reports
+      summary: Live cost report
+      description: Requires Reports entitlement. Inclusive UTC dates, default 14 days and maximum 90. Company scope follows call attribution, not shared-agent membership. Do not sum provider charges and trace estimates; they can overlap. Missing telemetry is listed in failures.
+      parameters:
+      - name: companyId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        '200':
+          description: Report with effective window
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerCostReport'
+        '400':
+          description: Invalid parameters
+        '401':
+          description: Authentication required
+        '403':
+          description: Reports entitlement required
+  /v1/reports/transfers:
+    get:
+      operationId: getTransferReport
+      tags:
+      - Reports
+      summary: Live transfer analysis
+      description: Requires Reports entitlement. Inclusive UTC dates, default 14 days and maximum 90. Company scope follows call attribution, not shared-agent membership.
+      parameters:
+      - name: metricId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: companyId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        '200':
+          description: Report with effective window
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerTransferReport'
+        '400':
+          description: Invalid parameters
+        '401':
+          description: Authentication required
+        '403':
+          description: Reports entitlement required
+        '404':
+          description: Transfer monitor not found
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message, e.g. Unauthorized or Validation failed.
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    CustomerCostReport:
+      type: object
+      required:
+      - rows
+      - failures
+      - monitors
+      - window
+      properties:
+        rows:
+          type: array
+          items:
+            type: object
+            properties:
+              companyId:
+                type: string
+                nullable: true
+              companyName:
+                type: string
+                nullable: true
+              provider:
+                type: string
+              metricId:
+                type: string
+                nullable: true
+              component:
+                type: string
+                enum:
+                - calls
+                - traces
+                - monitoring
+              amountUsd:
+                type: number
+              events:
+                type: integer
+              unknownCosts:
+                type: integer
+        failures:
+          type: array
+          items:
+            type: string
+            enum:
+            - calls
+            - traces
+            - monitoring
+        monitors:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              sampleRate:
+                type: number
+        window:
+          type: object
+          properties:
+            from:
+              type: string
+              format: date
+            to:
+              type: string
+              format: date
+          required:
+          - from
+          - to
+    CustomerTransferReport:
+      type: object
+      required:
+      - monitor
+      - window
+      - rows
+      - questions
+      - agents
+      properties:
+        monitor:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            version:
+              type: integer
+            sampleRate:
+              type: number
+        window:
+          type: object
+          properties:
+            from:
+              type: string
+              format: date
+            to:
+              type: string
+              format: date
+          required:
+          - from
+          - to
+        rows:
+          type: array
+          items:
+            type: object
+            properties:
+              agentId:
+                type: string
+              disposition:
+                type: string
+              patientType:
+                type: string
+              task:
+                type: string
+              reason:
+                type: string
+              count:
+                type: integer
+              evaluated:
+                type: integer
+              examples:
+                type: array
+                maxItems: 3
+                items:
+                  type: string
+                  format: uuid
+        agents:
+          type: array
+          items:
+            type: object
+            properties:
+              agentId:
+                type: string
+              name:
+                type: string
+              calls:
+                type: integer
+              evaluated:
+                type: integer
+              avoidable:
+                type: integer
+              abandoned:
+                type: integer
+              completed:
+                type: integer
+              taskKnown:
+                type: integer
+              dispositionKnown:
+                type: integer
+              avoidableRate:
+                type: number
+                nullable: true
+              completionRate:
+                type: number
+                nullable: true
+              incomplete:
+                type: integer
+              failureRate:
+                type: number
+                nullable: true
+        questions:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            properties:
+              question:
+                type: string
+              count:
+                type: integer
+              examples:
+                type: array
+                maxItems: 3
+                items:
+                  type: string
+                  format: uuid
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'Send `Authorization: Bearer YOUR_API_KEY`. The key resolves to a single organization.'

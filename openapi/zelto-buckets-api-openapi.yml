@@ -1,0 +1,367 @@
+openapi: 3.2.0
+info:
+  title: Zelto REST Buckets API
+  version: v1
+  description: Programmatic access to your Zelto organization. Every endpoint is scoped to the organization the API key belongs to. Mint a key at Settings → Integrations → API Call Upload.
+servers:
+- url: https://api.zelto.ai
+  description: Production
+security:
+- bearerAuth: []
+tags:
+- name: Buckets
+  description: Reviewer routing — group conversations for batched review.
+paths:
+  /v1/buckets:
+    get:
+      summary: List buckets
+      operationId: listBuckets
+      tags:
+      - Buckets
+      parameters:
+      - name: agentId
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Page of buckets.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/PageEnvelope'
+                - type: object
+                  properties:
+                    data:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Bucket'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Create a bucket
+      operationId: createBucket
+      tags:
+      - Buckets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - agentId
+              - name
+              properties:
+                agentId:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                type:
+                  type: string
+                  enum:
+                  - static
+                  default: static
+                filters:
+                  type: object
+                  additionalProperties: true
+                  default: {}
+      responses:
+        '200':
+          description: The created bucket.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bucket'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Agent not in your organization.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/buckets/{id}:
+    get:
+      summary: Get a bucket
+      operationId: getBucket
+      tags:
+      - Buckets
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: The bucket.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bucket'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/buckets/{id}/conversations:
+    get:
+      summary: List conversations in a bucket
+      operationId: listBucketConversations
+      tags:
+      - Buckets
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Page of conversations in the bucket.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/PageEnvelope'
+                - type: object
+                  properties:
+                    data:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      summary: Add a conversation to a bucket
+      operationId: addConversationToBucket
+      tags:
+      - Buckets
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - conversationId
+              properties:
+                conversationId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Conversation added (or already present). Idempotent.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bucketId:
+                    type: string
+                    format: uuid
+                  conversationId:
+                    type: string
+                    format: uuid
+                  alreadyExisted:
+                    type: boolean
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/buckets/{id}/conversations/{conversationId}:
+    delete:
+      summary: Remove a conversation from a bucket
+      operationId: removeConversationFromBucket
+      tags:
+      - Buckets
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: conversationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  schemas:
+    Bucket:
+      type: object
+      required:
+      - id
+      - organizationId
+      - agentId
+      - name
+      - type
+      - filters
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        agentId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+          - static
+        filters:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PageEnvelope:
+      type: object
+      required:
+      - data
+      - nextCursor
+      properties:
+        data:
+          type: array
+          items: {}
+        nextCursor:
+          type: string
+          nullable: true
+    Conversation:
+      type: object
+      required:
+      - id
+      - agentId
+      - name
+      - source
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        agentId:
+          type: string
+          format: uuid
+        receiverId:
+          type: string
+          format: uuid
+          nullable: true
+        name:
+          type: string
+        referenceId:
+          type: string
+          nullable: true
+        source:
+          type: string
+          description: Where the call came from, e.g. `vapi`, `retell`, `speechify`, `livekit`, `upload`.
+        endedReason:
+          type: string
+          nullable: true
+        cost:
+          type: string
+          nullable: true
+          description: Provider-reported cost in dollars, as a string for precision.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message, e.g. Unauthorized or Validation failed.
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque pagination cursor. Pass the `nextCursor` returned by the previous page.
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Items per page. Default 50, max 200.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+  responses:
+    Unauthorized:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found in your organization.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationFailed:
+      description: Request body failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'Send `Authorization: Bearer YOUR_API_KEY`. The key resolves to a single organization.'

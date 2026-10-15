@@ -1,0 +1,173 @@
+# Zelto
+
+> Production analytics for voice AI agents.
+
+## Docs
+
+### Get started
+
+- [Introduction](https://docs.zelto.ai/docs/index.md): Zelto is production analytics for voice AI agents — it records every call, analyzes every transcript, and surfaces the issues buried in your agents' conversations.
+- [Quickstart: start analyzing calls in five minutes](https://docs.zelto.ai/docs/quickstart.md): Sign up, connect your voice provider, and watch your first call land as an analyzed conversation.
+- [Start sending traces to Zelto](https://docs.zelto.ai/docs/guides/send-traces.md): Create an ingest key, export your first trace, identify agents with your own IDs, and connect traces to calls.
+- [Onboard with an agent](https://docs.zelto.ai/docs/onboarding-with-an-agent.md): Have your coding agent onboard your organization onto Zelto end to end over MCP — connect a provider, get calls in, create a monitor, and route findings.
+- [How Zelto works](https://docs.zelto.ai/docs/how-it-works.md): From a connected provider to conversations, findings, and changes — the whole platform end to end.
+
+### Core concepts
+
+- [Agents](https://docs.zelto.ai/docs/agents.md): How Zelto models the voice and chat bots that drive your conversations.
+- [Agent versions](https://docs.zelto.ai/docs/agent-versions.md): Declare the deployed version behind every call so experiments compare the intended agent releases.
+- [Companies](https://docs.zelto.ai/docs/companies.md): Model the clients or brands your agents work for and attribute each call to the right company.
+- [Conversations](https://docs.zelto.ai/docs/conversations.md): Transcripts, summaries, recordings, and on-demand AI analysis for every call your agents handle.
+- [Traces](https://docs.zelto.ai/docs/traces.md): Store and explore OpenTelemetry traces and logs from your voice agents — one trace per call, a tree of spans.
+- [Tool calls](https://docs.zelto.ai/docs/tool-calls.md): Track tool usage, failures, success rates, and duration across your voice agents.
+- [Findings](https://docs.zelto.ai/docs/findings.md): Structured issues across your conversations — status, priority, linked calls, and inline annotations.
+- [Monitors](https://docs.zelto.ai/docs/monitors.md): Continuous AI checks that judge every call against a rubric you write, and trend the result over time.
+- [Experiments](https://docs.zelto.ai/docs/experiments.md): Compare deployed agent versions across independent monitor outcomes.
+- [Changes](https://docs.zelto.ai/docs/changes.md): Agent-scoped fixes that address one or more findings, with a draft-to-published workflow.
+- [Reports](https://docs.zelto.ai/docs/reports.md): A written analysis of your voice AI operation, researched and written by an AI assistant from a single prompt, then refined in chat.
+- [Simulations](https://docs.zelto.ai/docs/simulations.md): Test a prompt change against synthetic callers before it goes live, and compare pass rates between two prompts.
+
+### Integrations
+
+- [Integrations](https://docs.zelto.ai/docs/integrations/index.md): Connect Zelto to your voice provider, notification channels, and issue tracker.
+- [Webhooks](https://docs.zelto.ai/docs/integrations/webhooks.md): Send positive monitor results to your system to update customer histories automatically.
+- [Custom & other providers](https://docs.zelto.ai/docs/integrations/api-call-upload.md): Mint an API key and POST conversations into Zelto — voice calls or text/messaging — from any stack we don't natively support yet (Bland, Pipecat, a chatbot, in-house, …).
+- [Chatbot & text conversations](https://docs.zelto.ai/docs/integrations/chatbot-text-conversations.md): POST chatbot, SMS, WhatsApp, and web-chat conversations into Zelto over the same ingest endpoint as voice calls — no audio required.
+- [Kapso (WhatsApp)](https://docs.zelto.ai/docs/integrations/kapso.md): Connect a Kapso project and bring the WhatsApp conversations your agents handle into Zelto — no audio, no upload code.
+- [Twilio](https://docs.zelto.ai/docs/integrations/twilio.md): Connect a Twilio account to add carrier-level telephony traces to calls that run on Twilio.
+- [MCP](https://docs.zelto.ai/docs/mcp.md): Connect Zelto to Claude Code, Codex, Cursor, and other MCP clients.
+
+#### Voice providers
+
+- [Cartesia](https://docs.zelto.ai/docs/integrations/cartesia.md): Connect a Cartesia account so Zelto can reach your voice agents.
+- [ElevenLabs](https://docs.zelto.ai/docs/integrations/elevenlabs.md): Connect an ElevenLabs account and stream calls from your Conversational AI agents into Zelto.
+- [LiveKit](https://docs.zelto.ai/docs/integrations/livekit.md): Stream LiveKit Agents sessions into Zelto by forwarding each finished session from your worker.
+- [Retell](https://docs.zelto.ai/docs/integrations/retell.md): Connect a Retell account and pull calls into Zelto.
+- [Speechify](https://docs.zelto.ai/docs/integrations/speechify.md): Connect a Speechify account and forward calls into Zelto.
+- [Telnyx AI](https://docs.zelto.ai/docs/integrations/telnyx.md): Connect a Telnyx AI account and import your AI voice assistants into Zelto.
+- [Vapi](https://docs.zelto.ai/docs/integrations/vapi.md): Connect a Vapi account with an API key and pull every call into Zelto.
+
+#### Notifications
+
+- [Slack](https://docs.zelto.ai/docs/integrations/slack.md): Chat with Zelto from Slack and route per-agent updates to channels.
+- [Google Chat](https://docs.zelto.ai/docs/integrations/google-chat.md): Connect a Google Chat space to Zelto via incoming webhook.
+
+#### Issue tracking
+
+- [Linear](https://docs.zelto.ai/docs/integrations/linear.md): File a Linear issue from a Zelto finding or change and keep its status in sync as the issue moves.
+
+### Guides
+
+- [Connect a voice provider](https://docs.zelto.ai/docs/guides/connect-a-voice-provider.md): Pick the right integration for your stack, then confirm calls are flowing into Zelto.
+- [Triage findings](https://docs.zelto.ai/docs/guides/triage-findings.md): Turn raw analysis into action — curate a finding, prioritize it, push it to Linear, and propose a change.
+- [Audit an agent](https://docs.zelto.ai/docs/guides/audit-an-agent.md): Investigate one agent end to end — its activity trends, recent calls, its system prompt, and open findings.
+- [Set up companies](https://docs.zelto.ai/docs/guides/set-up-companies.md): Create client or brand records, attach agents, choose defaults, and verify call attribution.
+- [Action checks and operational reports](https://docs.zelto.ai/docs/guides/customer-evaluation-workflows.md): Check proposed actions, map monitor reference data, analyze transfers and estimate costs.
+- [Manage your team](https://docs.zelto.ai/docs/guides/manage-your-team.md): Invite members, set roles, configure your organization, mint API keys, and track usage.
+
+### Account & settings
+
+- [Settings](https://docs.zelto.ai/docs/settings.md): Members and invites, organization profile, API keys, usage, and billing.
+
+### Legal
+
+- [Privacy Policy](https://docs.zelto.ai/docs/legal/privacy-policy.md): How Zelto collects, uses, shares, secures, and lets you control personal information and customer content.
+- [Terms of Service](https://docs.zelto.ai/docs/legal/terms-of-service.md): The terms that govern your access to and use of Zelto's website, application, and APIs.
+
+## API Reference
+
+### Reports
+
+- [Get a saved monitor report](https://docs.zelto.ai/api-reference/reports/get-a-saved-monitor-report.md): Aggregate selected monitors for inclusive local dates (maximum 31 days), defaulting to the previous complete Monday–Sunday. Applies the saved company and metadata scope. Affected rate uses current-version evaluated calls as denominator. Requires Reports. Use deliveryId for an immutable historical sn…
+- [Live cost report](https://docs.zelto.ai/api-reference/reports/live-cost-report.md): Requires Reports entitlement. Inclusive UTC dates, default 14 days and maximum 90. Company scope follows call attribution, not shared-agent membership. Do not sum provider charges and trace estimates; they can overlap. Missing telemetry is listed in failures.
+- [Live transfer analysis](https://docs.zelto.ai/api-reference/reports/live-transfer-analysis.md): Requires Reports entitlement. Inclusive UTC dates, default 14 days and maximum 90. Company scope follows call attribution, not shared-agent membership.
+
+### Agents
+
+- [List agents](https://docs.zelto.ai/api-reference/agents/list-agents.md)
+- [Get an agent](https://docs.zelto.ai/api-reference/agents/get-an-agent.md)
+- [Register an agent version](https://docs.zelto.ai/api-reference/agents/register-an-agent-version.md): Register a release prompt and context before calls arrive. Requires a key belonging to an organization owner or admin. Repeating the same values returns the existing ID; changes require a new label. Send that label as version on every call for the same agent. Does not deploy the agent or route traff…
+
+### Conversations
+
+- [List conversations](https://docs.zelto.ai/api-reference/conversations/list-conversations.md)
+- [Get a conversation](https://docs.zelto.ai/api-reference/conversations/get-a-conversation.md)
+- [Get a conversation transcript](https://docs.zelto.ai/api-reference/conversations/get-a-conversation-transcript.md)
+- [Upload a call](https://docs.zelto.ai/api-reference/conversations/upload-a-call.md): Provider-agnostic call ingestion. POST a call in Zelto's canonical shape (the default), or a native Vapi/Retell webhook payload selected with the `X-Zelto-Provider` header. The delivery is acknowledged immediately and processed asynchronously into a conversation + transcript. Deduplicated by call id…
+- [Create a direct recording upload](https://docs.zelto.ai/api-reference/conversations/create-a-direct-recording-upload.md): Creates a short-lived, organization-scoped S3 upload target for a local audio recording. PUT bytes to uploadUrl, then pass id as call.recordingUploadId to /webhooks/calls. Recording bytes bypass the Zelto API service.
+
+### Customer Metrics
+
+- [List a call's customer metrics](https://docs.zelto.ai/api-reference/customer-metrics/list-a-calls-customer-metrics.md): List the customer-provided metrics attached to a call. Requires metrics to be enabled for the organization.
+- [Submit a customer metric](https://docs.zelto.ai/api-reference/customer-metrics/submit-a-customer-metric.md): Create or replace a customer-provided metric for a call. Send a `verdict` (pass/fail) and/or a `score` (0–100), and optionally map it to one of your Zelto metrics with `metricId`. Idempotent on `(conversation, label)`: resubmitting the same `label` replaces the prior value. Requires metrics to be en…
+
+### Reviews
+
+- [List reviews](https://docs.zelto.ai/api-reference/reviews/list-reviews.md)
+- [Get a review](https://docs.zelto.ai/api-reference/reviews/get-a-review.md)
+
+### Buckets
+
+- [List buckets](https://docs.zelto.ai/api-reference/buckets/list-buckets.md)
+- [Create a bucket](https://docs.zelto.ai/api-reference/buckets/create-a-bucket.md)
+- [Get a bucket](https://docs.zelto.ai/api-reference/buckets/get-a-bucket.md)
+- [List conversations in a bucket](https://docs.zelto.ai/api-reference/buckets/list-conversations-in-a-bucket.md)
+- [Add a conversation to a bucket](https://docs.zelto.ai/api-reference/buckets/add-a-conversation-to-a-bucket.md)
+- [Remove a conversation from a bucket](https://docs.zelto.ai/api-reference/buckets/remove-a-conversation-from-a-bucket.md)
+
+### Companies
+
+- [List companies](https://docs.zelto.ai/api-reference/companies/list-companies.md): Companies (clients or brands your agents work for) in the key's organization, newest first.
+- [Get a company](https://docs.zelto.ai/api-reference/companies/get-a-company.md)
+- [Update a company](https://docs.zelto.ai/api-reference/companies/update-a-company.md): Set the company's logo to an image you host, or send `null` to go back to the default mark. To upload an image file instead, use `PUT /v1/companies/{id}/logo`.
+- [Upload a company logo](https://docs.zelto.ai/api-reference/companies/upload-a-company-logo.md): Upload a PNG, JPEG, or WebP image of up to 2 MB as the company's logo. Send the raw image bytes, or `multipart/form-data` with the image in a `file` field. The image type is detected from its contents. Square images look best. SVG is not accepted as an upload; host it yourself and set it with `PATCH…
+- [Remove a company logo](https://docs.zelto.ai/api-reference/companies/remove-a-company-logo.md): Remove the logo. The company goes back to its default mark.
+
+### Findings
+
+- [List findings](https://docs.zelto.ai/api-reference/findings/list-findings.md)
+- [Create a finding](https://docs.zelto.ai/api-reference/findings/create-a-finding.md)
+- [Get a finding](https://docs.zelto.ai/api-reference/findings/get-a-finding.md)
+- [Update a finding](https://docs.zelto.ai/api-reference/findings/update-a-finding.md)
+- [List conversations attached to a finding](https://docs.zelto.ai/api-reference/findings/list-conversations-attached-to-a-finding.md)
+- [Attach a conversation to a finding](https://docs.zelto.ai/api-reference/findings/attach-a-conversation-to-a-finding.md)
+- [Detach a conversation from a finding](https://docs.zelto.ai/api-reference/findings/detach-a-conversation-from-a-finding.md)
+- [List comments on a finding-conversation link](https://docs.zelto.ai/api-reference/findings/list-comments-on-a-finding-conversation-link.md)
+- [Add a comment or annotation](https://docs.zelto.ai/api-reference/findings/add-a-comment-or-annotation.md)
+
+### Experiments
+
+- [List reusable experiment monitor groups](https://docs.zelto.ai/api-reference/experiments/list-reusable-experiment-monitor-groups.md): Returns this organization's saved groups and ordered monitor IDs. Requires Observability and the Experiments v2 rollout flag. Empty groups remain visible if their source monitors were deleted.
+- [Review an experiment before launch](https://docs.zelto.ai/api-reference/experiments/review-an-experiment-before-launch.md): Validates the immutable experiment definition and returns recent traffic, identity quality, leakage, and projected evaluation cost. Requires Observability, the Experiments v2 rollout flag, and owner/admin access.
+- [List experiments](https://docs.zelto.ai/api-reference/experiments/list-experiments.md)
+- [Launch an experiment](https://docs.zelto.ai/api-reference/experiments/launch-an-experiment.md): Launches immediately using server time and runs indefinitely until an operator explicitly concludes it. There is no automatic end date or statistical stopping rule. Creates or reuses a monitor group and freezes its definitions for both versions. Zelto does not route callers. Requires Observability,…
+- [Get an experiment and its independent outcome results](https://docs.zelto.ai/api-reference/experiments/get-an-experiment-and-its-independent-outcome-results.md)
+- [Delete an experiment](https://docs.zelto.ai/api-reference/experiments/delete-an-experiment.md)
+- [Update mutable experiment settings](https://docs.zelto.ai/api-reference/experiments/update-mutable-experiment-settings.md): Only name, description, expected allocation, and notification email addresses may change after launch.
+- [Permanently conclude an experiment](https://docs.zelto.ai/api-reference/experiments/permanently-conclude-an-experiment.md): Closes the call-time window permanently. Missing observations may still finish.
+- [List durable evaluation runs](https://docs.zelto.ai/api-reference/experiments/list-durable-evaluation-runs.md)
+- [Retry missing or failed observations](https://docs.zelto.ai/api-reference/experiments/retry-missing-or-failed-observations.md)
+- [Get evaluation progress](https://docs.zelto.ai/api-reference/experiments/get-evaluation-progress.md)
+- [List experiment observations by call](https://docs.zelto.ai/api-reference/experiments/list-experiment-observations-by-call.md)
+
+### Organizations
+
+- [Provision an organization (service key)](https://docs.zelto.ai/api-reference/organizations/provision-an-organization-service-key.md): Create a Zelto organization headlessly from an automation (e.g. a Slack/CRM provisioner) during a sales call. Finds-or-creates the owner user by email, creates the org and an `owner` member, seeds signup credits, mirrors to the analytical store, and emails the owner an invite to set up their login.
+
+### Action checks
+
+- [Check a proposed action before committing it](https://docs.zelto.ai/api-reference/action-checks/check-a-proposed-action-before-committing-it.md): Compares supplied scalar identifiers and tool statuses synchronously. Does not book or fetch CRM state. Await allowed=true before committing; do not commit on errors or timeouts. Maximum 64 KiB.
+
+## OpenAPI Specs
+
+- [docs-openapi](/docs-openapi.json)
+- [docs-openapi](/es/docs-openapi.json)
+
+> The links below point to documentation indexes. Follow each `/_llms/` index recursively until you reach documentation pages.
+
+## Indexes
+
+- [Spanish (92 pages)](https://docs.zelto.ai/_llms/es.txt): Documentation for Spanish.
+
+
+This documentation is built and hosted on [Mintlify](https://mintlify.com), a developer documentation platform.

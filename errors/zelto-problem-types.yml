@@ -1,0 +1,75 @@
+generated: '2026-10-15'
+method: derived
+generator: derive-problem-types.py
+source:
+- openapi/zelto-openapi.json
+format: custom
+envelope:
+  media_type: application/json
+  schema: Error
+coverage:
+  operations: 49
+  statuses_declared: 9
+problems:
+- status: 400
+  title: Bad Request
+  description: Request body failed validation.
+  operations: 20
+  media_types:
+  - application/json
+  schema: Error
+- status: 401
+  title: Unauthorized
+  description: Missing or invalid API key.
+  operations: 49
+  media_types:
+  - application/json
+  schema: Error
+- status: 403
+  title: Forbidden
+  description: The key is valid but not allowed to perform this operation (e.g. a read-only org-scoped customer
+    key calling a service-only endpoint).
+  operations: 15
+  media_types:
+  - application/json
+  schema: Error
+- status: 404
+  title: Not Found
+  description: Resource not found in your organization.
+  operations: 32
+  media_types:
+  - application/json
+  schema: Error
+- status: 409
+  title: Conflict
+  description: The label already exists with a different prompt or configuration. Use a new label.
+  operations: 1
+  media_types: []
+  schema: null
+- status: 413
+  title: Content Too Large
+  description: The image is larger than 2 MB.
+  operations: 2
+  media_types:
+  - application/json
+  schema: Error
+- status: 415
+  title: Unsupported Media Type
+  description: The bytes are not a PNG, JPEG, or WebP image.
+  operations: 1
+  media_types:
+  - application/json
+  schema: Error
+- status: 500
+  title: Internal Server Error
+  description: Could not register the version.
+  operations: 1
+  media_types: []
+  schema: null
+- status: 503
+  title: Service Unavailable
+  description: Report generation unavailable
+  operations: 1
+  media_types:
+  - application/json
+  schema: Error

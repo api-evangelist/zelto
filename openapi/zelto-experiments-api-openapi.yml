@@ -1,0 +1,455 @@
+openapi: 3.2.0
+info:
+  title: Zelto REST Experiments API
+  version: v1
+  description: Programmatic access to your Zelto organization. Every endpoint is scoped to the organization the API key belongs to. Mint a key at Settings → Integrations → API Call Upload.
+servers:
+- url: https://api.zelto.ai
+  description: Production
+security:
+- bearerAuth: []
+tags:
+- name: Experiments
+  description: Prospective measurement of two externally routed prompt versions across independent monitor outcomes.
+paths:
+  /v1/experiments/monitor-groups:
+    get:
+      summary: List reusable experiment monitor groups
+      description: Returns this organization's saved groups and ordered monitor IDs. Requires Observability and the Experiments v2 rollout flag. Empty groups remain visible if their source monitors were deleted.
+      operationId: listExperimentMonitorGroups
+      tags:
+      - Experiments
+      responses:
+        '200':
+          description: Saved monitor groups.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                      - id
+                      - name
+                      - metricIds
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        name:
+                          type: string
+                        metricIds:
+                          type: array
+                          items:
+                            type: string
+                            format: uuid
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/experiments/preflight:
+    post:
+      summary: Review an experiment before launch
+      description: Validates the immutable experiment definition and returns recent traffic, identity quality, leakage, and projected evaluation cost. Requires Observability, the Experiments v2 rollout flag, and owner/admin access.
+      operationId: preflightExperiment
+      tags:
+      - Experiments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExperimentCreate'
+      responses:
+        '200':
+          description: Preflight summary.
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /v1/experiments:
+    get:
+      summary: List experiments
+      operationId: listExperiments
+      tags:
+      - Experiments
+      responses:
+        '200':
+          description: Experiments visible to this organization.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Launch an experiment
+      description: Launches immediately using server time and runs indefinitely until an operator explicitly concludes it. There is no automatic end date or statistical stopping rule. Creates or reuses a monitor group and freezes its definitions for both versions. Zelto does not route callers. Requires Observability, the Experiments v2 rollout flag, and owner/admin access.
+      operationId: createExperiment
+      tags:
+      - Experiments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExperimentCreate'
+      responses:
+        '201':
+          description: Experiment launched.
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /v1/experiments/{id}:
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      summary: Get an experiment and its independent outcome results
+      operationId: getExperiment
+      tags:
+      - Experiments
+      responses:
+        '200':
+          description: Experiment definition, latest evaluation progress, and outcome-level estimates.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      summary: Update mutable experiment settings
+      description: Only name, description, expected allocation, and notification email addresses may change after launch.
+      operationId: updateExperiment
+      tags:
+      - Experiments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                description:
+                  type:
+                  - string
+                  - 'null'
+                  maxLength: 2000
+                expectedArmAPercent:
+                  type: integer
+                  minimum: 1
+                  maximum: 99
+                notifications:
+                  type: object
+                  required:
+                  - emails
+                  properties:
+                    emails:
+                      type: array
+                      maxItems: 20
+                      items:
+                        type: string
+                        format: email
+      responses:
+        '200':
+          description: Settings updated.
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete an experiment
+      operationId: deleteExperiment
+      tags:
+      - Experiments
+      responses:
+        '200':
+          description: Experiment deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/experiments/{id}/conclude:
+    post:
+      summary: Permanently conclude an experiment
+      description: Closes the call-time window permanently. Missing observations may still finish.
+      operationId: concludeExperiment
+      tags:
+      - Experiments
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Experiment concluded.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/experiments/{id}/evaluations:
+    get:
+      summary: List durable evaluation runs
+      operationId: listExperimentEvaluations
+      tags:
+      - Experiments
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Evaluation runs and progress.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Retry missing or failed observations
+      operationId: startExperimentEvaluation
+      tags:
+      - Experiments
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '202':
+          description: A run was started or the active run was returned.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/experiments/{id}/evaluations/{runId}:
+    get:
+      summary: Get evaluation progress
+      operationId: getExperimentEvaluation
+      tags:
+      - Experiments
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: runId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Evaluation progress.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/experiments/{id}/conversations:
+    get:
+      summary: List experiment observations by call
+      operationId: listExperimentConversations
+      tags:
+      - Experiments
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Outcome-level call observations with terminal statuses and result details.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+components:
+  responses:
+    Forbidden:
+      description: The key is valid but not allowed to perform this operation (e.g. a read-only org-scoped customer key calling a service-only endpoint).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found in your organization.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationFailed:
+      description: Request body failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    ExperimentCreate:
+      type: object
+      required:
+      - name
+      - agentId
+      - armAVersionId
+      - armBVersionId
+      - outcomeMetricIds
+      - primaryMetricId
+      - stableRoutingConfirmed
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type:
+          - string
+          - 'null'
+          maxLength: 2000
+        agentId:
+          type: string
+          format: uuid
+        armAVersionId:
+          type: string
+          format: uuid
+        armBVersionId:
+          type: string
+          format: uuid
+        armAName:
+          type:
+          - string
+          - 'null'
+          maxLength: 120
+        armBName:
+          type:
+          - string
+          - 'null'
+          maxLength: 120
+        cohortFilters:
+          type: array
+          maxItems: 12
+          items:
+            type: object
+            additionalProperties: true
+        assignmentUnit:
+          oneOf:
+          - type: object
+            required:
+            - kind
+            properties:
+              kind:
+                const: auto
+          - type: object
+            required:
+            - kind
+            - key
+            properties:
+              kind:
+                const: metadata
+              key:
+                type: string
+                minLength: 1
+                maxLength: 120
+        expectedArmAPercent:
+          type: integer
+          minimum: 1
+          maximum: 99
+          default: 50
+        outcomeMetricIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+        primaryMetricId:
+          type: string
+          format: uuid
+        monitorGroupId:
+          type: string
+          format: uuid
+          description: Reuse a saved group from GET /v1/experiments/monitor-groups. outcomeMetricIds must match the group's current metricIds. Cannot be combined with newMonitorGroupName.
+        newMonitorGroupName:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Save outcomeMetricIds as a reusable organization group when launching. Cannot be combined with monitorGroupId.
+        notifications:
+          type: object
+          properties:
+            emails:
+              type: array
+              maxItems: 20
+              items:
+                type: string
+                format: email
+        stableRoutingConfirmed:
+          const: true
+          description: Confirms that traffic is assigned consistently outside Zelto.
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message, e.g. Unauthorized or Validation failed.
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Items per page. Default 50, max 200.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'Send `Authorization: Bearer YOUR_API_KEY`. The key resolves to a single organization.'

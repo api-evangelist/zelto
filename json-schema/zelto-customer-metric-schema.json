@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/api-evangelist/zelto/main/json-schema/zelto-customer-metric-schema.json",
+  "title": "CustomerMetric",
+  "x-generated": "2026-10-15",
+  "x-method": "derived",
+  "x-generator": "derive-json-schema.py",
+  "x-source": "openapi/zelto-openapi.json#/components/schemas/CustomerMetric",
+  "type": "object",
+  "required": [
+    "id",
+    "organizationId",
+    "conversationId",
+    "agentId",
+    "label",
+    "source",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "organizationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "conversationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "agentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "metricId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid",
+      "description": "The Zelto metric this customer metric maps to, if any."
+    },
+    "label": {
+      "type": "string",
+      "description": "The customer's name for the metric, e.g. \"Compliance Check\"."
+    },
+    "externalId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The customer's own id for this record."
+    },
+    "verdict": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "score": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "0–100. Null when only a pass/fail verdict was sent."
+    },
+    "note": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source": {
+      "type": "string",
+      "description": "Provenance of the record, e.g. `api`."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

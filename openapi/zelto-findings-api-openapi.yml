@@ -1,0 +1,621 @@
+openapi: 3.2.0
+info:
+  title: Zelto REST Findings API
+  version: v1
+  description: Programmatic access to your Zelto organization. Every endpoint is scoped to the organization the API key belongs to. Mint a key at Settings → Integrations → API Call Upload.
+servers:
+- url: https://api.zelto.ai
+  description: Production
+security:
+- bearerAuth: []
+tags:
+- name: Findings
+  description: Structured issues discovered during analysis, with optional conversation attachments and comments.
+paths:
+  /v1/findings:
+    get:
+      summary: List findings
+      operationId: listFindings
+      tags:
+      - Findings
+      parameters:
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - open
+          - acknowledged
+          - resolved
+          - ignored
+      - name: priority
+        in: query
+        schema:
+          type: string
+          enum:
+          - none
+          - low
+          - medium
+          - high
+          - urgent
+      - name: tags
+        in: query
+        schema:
+          type: string
+          description: Comma-separated list of tags.
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Page of findings.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/PageEnvelope'
+                - type: object
+                  properties:
+                    data:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Finding'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Create a finding
+      operationId: createFinding
+      tags:
+      - Findings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - title
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                description:
+                  type: object
+                  additionalProperties: true
+                  description: 'TipTap JSON document. May contain `agentPrompt` blocks ({type: agentPrompt, attrs: {agentId, agentName, agentVersionId?, versionNumber?, lineStart?, lineEnd?, excerpt}}); `excerpt` must be verbatim from that agent version''s system prompt, else 400.'
+                status:
+                  type: string
+                  enum:
+                  - open
+                  - acknowledged
+                  - resolved
+                  - ignored
+                  default: open
+                priority:
+                  type: string
+                  enum:
+                  - none
+                  - low
+                  - medium
+                  - high
+                  - urgent
+                  default: none
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  default: []
+                findingType:
+                  type: integer
+                  nullable: true
+                conversationIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: Optional conversation UUIDs to attach to the new finding on creation.
+                analyzedFromDate:
+                  type: string
+                  format: date-time
+                  description: Optional start of the analyzed time range this finding summarizes.
+                analyzedToDate:
+                  type: string
+                  format: date-time
+                  description: Optional end of the analyzed time range this finding summarizes.
+      responses:
+        '200':
+          description: Created finding.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Finding'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/findings/{id}:
+    get:
+      summary: Get a finding
+      operationId: getFinding
+      tags:
+      - Findings
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: The finding.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Finding'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      summary: Update a finding
+      operationId: updateFinding
+      tags:
+      - Findings
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                description:
+                  type: object
+                  additionalProperties: true
+                  description: TipTap JSON document. May contain `agentPrompt` blocks; `excerpt` must be verbatim from that agent's system prompt, else 400.
+                status:
+                  type: string
+                  enum:
+                  - open
+                  - acknowledged
+                  - resolved
+                  - ignored
+                priority:
+                  type: string
+                  enum:
+                  - none
+                  - low
+                  - medium
+                  - high
+                  - urgent
+                tags:
+                  type: array
+                  items:
+                    type: string
+                findingType:
+                  type: integer
+                  nullable: true
+                assigneeUserId:
+                  type: string
+                  format: uuid
+                  nullable: true
+      responses:
+        '200':
+          description: Updated finding.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Finding'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/findings/{id}/conversations:
+    get:
+      summary: List conversations attached to a finding
+      operationId: listFindingConversations
+      tags:
+      - Findings
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Page of conversations linked to the finding.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/PageEnvelope'
+                - type: object
+                  properties:
+                    data:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      summary: Attach a conversation to a finding
+      operationId: addConversationToFinding
+      tags:
+      - Findings
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - conversationId
+              properties:
+                conversationId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Link created (or already present). Idempotent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FindingConversation'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/findings/{id}/conversations/{conversationId}:
+    delete:
+      summary: Detach a conversation from a finding
+      operationId: removeConversationFromFinding
+      tags:
+      - Findings
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: conversationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/findings/{id}/conversations/{conversationId}/comments:
+    get:
+      summary: List comments on a finding-conversation link
+      operationId: listFindingConversationComments
+      tags:
+      - Findings
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: conversationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Comments + annotations on this link.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      summary: Add a comment or annotation
+      operationId: createFindingConversationComment
+      tags:
+      - Findings
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: conversationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - body
+              properties:
+                body:
+                  type: string
+                  minLength: 1
+                type:
+                  type: string
+                  enum:
+                  - annotation
+                  - comment
+                  default: comment
+                annotationStartMs:
+                  type: integer
+                  minimum: 0
+                annotationEndMs:
+                  type: integer
+                  minimum: 0
+      responses:
+        '200':
+          description: Created comment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  schemas:
+    Finding:
+      type: object
+      required:
+      - id
+      - title
+      - status
+      - priority
+      - tags
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: object
+          additionalProperties: true
+          description: 'TipTap JSON document. May contain `agentPrompt` blocks ({type: agentPrompt, attrs: {agentId, agentName, agentVersionId?, versionNumber?, lineStart?, lineEnd?, excerpt}}); `excerpt` must be verbatim from that agent version''s system prompt, else 400.'
+        status:
+          type: string
+          enum:
+          - open
+          - acknowledged
+          - resolved
+          - ignored
+        priority:
+          type: string
+          enum:
+          - none
+          - low
+          - medium
+          - high
+          - urgent
+        tags:
+          type: array
+          items:
+            type: string
+        findingType:
+          type: integer
+          nullable: true
+        assigneeUserId:
+          type: string
+          format: uuid
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PageEnvelope:
+      type: object
+      required:
+      - data
+      - nextCursor
+      properties:
+        data:
+          type: array
+          items: {}
+        nextCursor:
+          type: string
+          nullable: true
+    Conversation:
+      type: object
+      required:
+      - id
+      - agentId
+      - name
+      - source
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        agentId:
+          type: string
+          format: uuid
+        receiverId:
+          type: string
+          format: uuid
+          nullable: true
+        name:
+          type: string
+        referenceId:
+          type: string
+          nullable: true
+        source:
+          type: string
+          description: Where the call came from, e.g. `vapi`, `retell`, `speechify`, `livekit`, `upload`.
+        endedReason:
+          type: string
+          nullable: true
+        cost:
+          type: string
+          nullable: true
+          description: Provider-reported cost in dollars, as a string for precision.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    FindingConversation:
+      type: object
+      required:
+      - findingId
+      - conversationId
+      - createdAt
+      properties:
+        findingId:
+          type: string
+          format: uuid
+        conversationId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        alreadyExisted:
+          type: boolean
+          description: Returned on idempotent re-add.
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message, e.g. Unauthorized or Validation failed.
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    Comment:
+      type: object
+      required:
+      - id
+      - body
+      - type
+      - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        body:
+          type: string
+        type:
+          type: string
+          enum:
+          - annotation
+          - comment
+        annotationStartMs:
+          type: integer
+          nullable: true
+        annotationEndMs:
+          type: integer
+          nullable: true
+        authorUserId:
+          type: string
+          format: uuid
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque pagination cursor. Pass the `nextCursor` returned by the previous page.
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Items per page. Default 50, max 200.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+  responses:
+    Unauthorized:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found in your organization.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationFailed:
+      description: Request body failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'Send `Authorization: Bearer YOUR_API_KEY`. The key resolves to a single organization.'

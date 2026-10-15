@@ -1,0 +1,6 @@
+generated: '2026-10-15'
+method: probed
+generator: harvest-llms.py
+source: https://docs.zelto.ai/llms.txt
+bytes: 17130
+note: saved verbatim; the provider's own document

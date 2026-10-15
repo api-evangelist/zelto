@@ -1,28 +1,355 @@
 aid: zelto
 name: Zelto
-description: 'Zelto is a company surfaced via the API Evangelist harvest backlog (source: new-submission)
-  and added to the network as a stub for full-pipeline profiling.'
+image: https://zelto.ai/opengraph-image?4d5829a62bee824e
+description: Zelto AI provides production QA for voice AI agents, offering analytics and monitoring of conversational pipelines. It ingests calls,
+  transcripts, messages, and LLM traces to surface failures, rank findings, and draft fixes, helping teams improve conversion and reliability
+  at scale. The platform integrates with major voice AI services and offers a dashboard for debugging, testing, and continuous improvement.
 url: https://raw.githubusercontent.com/api-evangelist/zelto/refs/heads/main/apis.yml
 x-type: company
 x-source: harvest:new-submission
-x-tier: stub
-x-tier-reason: harvest
+x-tier: profiled
+x-tier-reason: enrichment pass 2026-10-15 (modular-v1; was harvest)
 specificationVersion: '0.20'
 created: '2026-10-15'
 modified: '2026-10-15'
 tags:
 - Company
-apis: []
+- VoiceAI
+- QA
+- Production
+- Analytics
+- Monitoring
 maintainers:
 - FN: Kin Lane
   email: kin@apievangelist.com
 - FN: APIs.json
   email: info@apis.io
 common:
+- type: AgenticAccess
+  url: agentic-access/zelto-agentic-access.yml
+- type: Spectral
+  url: rules/zelto-rules.yml
+- type: JSONLD
+  url: json-ld/zelto-context.jsonld
+- type: Vocabulary
+  url: vocabulary/zelto-vocabulary.yml
+- type: AgentSkill
+  url: skills/_index.yml
+- type: DataModel
+  url: data-model/zelto-data-model.yml
+- type: Compliance
+  url: https://trust.inc/zelto
+- type: ErrorCatalog
+  url: errors/zelto-problem-types.yml
+- type: Conformance
+  url: conformance/zelto-conformance.yml
+- type: LLMsTxt
+  url: llms/zelto-llms.txt
+- type: AgentCard
+  url: a2a/zelto-a2a.yml
+- type: SecurityTxt
+  url: well-known/zelto-dashboard-security.txt
+- type: SecurityTxt
+  url: well-known/zelto-api-security.txt
+- type: WellKnown
+  url: well-known/zelto-well-known.yml
+- type: Hosts
+  url: hosts/zelto-hosts.yml
+- type: Vendors
+  url: vendors/zelto-vendors.yml
+- type: SignUp
+  url: https://api.zelto.ai/signup
+- type: GettingStarted
+  url: https://docs.zelto.ai/docs/quickstart
+- type: Authentication
+  url: authentication/zelto-authentication.yml
+- type: TrustCenter
+  url: security/zelto-trust-center.yml
+- type: DomainSecurity
+  url: security/zelto-domain-security.yml
 - type: Website
   url: https://zelto.ai
 - type: Documentation
   url: https://docs.zelto.ai/api-reference
+- type: APIReference
+  url: https://docs.zelto.ai/api-reference
+- type: PrivacyPolicy
+  url: https://zelto.ai/privacy
+- type: TermsOfService
+  url: https://zelto.ai/terms
+apis:
+- aid: zelto:zelto-action-checks-api
+  name: Zelto Action checks API
+  description: The Action checks API from Zelto — 1 operation(s) for action checks.
+  humanURL: https://docs.zelto.ai/api-reference
+  baseURL: https://api.zelto.ai
+  tags:
+  - Action checks
+  properties:
+  - type: OpenAPI
+    url: openapi/zelto-action-checks-api-openapi.yml
+  - type: JSONSchema
+    url: json-schema/zelto-call-ingest-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-experiment-create-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-transfer-report-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-action-check-input-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-metric-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-finding-schema.json
+- aid: zelto:zelto-agents-api
+  name: Zelto Agents API
+  description: Voice and chat bots normalised through Zelto's ingestion pipeline.
+  humanURL: https://docs.zelto.ai/api-reference
+  baseURL: https://api.zelto.ai
+  tags:
+  - Agents
+  properties:
+  - type: OpenAPI
+    url: openapi/zelto-agents-api-openapi.yml
+  - type: JSONSchema
+    url: json-schema/zelto-call-ingest-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-experiment-create-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-transfer-report-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-action-check-input-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-metric-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-finding-schema.json
+- aid: zelto:zelto-buckets-api
+  name: Zelto Buckets API
+  description: Reviewer routing — group conversations for batched review.
+  humanURL: https://docs.zelto.ai/api-reference
+  baseURL: https://api.zelto.ai
+  tags:
+  - Buckets
+  properties:
+  - type: OpenAPI
+    url: openapi/zelto-buckets-api-openapi.yml
+  - type: JSONSchema
+    url: json-schema/zelto-call-ingest-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-experiment-create-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-transfer-report-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-action-check-input-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-metric-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-finding-schema.json
+- aid: zelto:zelto-companies-api
+  name: Zelto Companies API
+  description: Clients or brands your agents work for, and their logos.
+  humanURL: https://docs.zelto.ai/api-reference
+  baseURL: https://api.zelto.ai
+  tags:
+  - Companies
+  properties:
+  - type: OpenAPI
+    url: openapi/zelto-companies-api-openapi.yml
+  - type: JSONSchema
+    url: json-schema/zelto-call-ingest-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-experiment-create-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-transfer-report-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-action-check-input-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-metric-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-finding-schema.json
+- aid: zelto:zelto-conversations-api
+  name: Zelto Conversations API
+  description: Calls, chats, and voicemails — plus their transcripts and recordings.
+  humanURL: https://docs.zelto.ai/api-reference
+  baseURL: https://api.zelto.ai
+  tags:
+  - Conversations
+  properties:
+  - type: OpenAPI
+    url: openapi/zelto-conversations-api-openapi.yml
+  - type: JSONSchema
+    url: json-schema/zelto-call-ingest-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-experiment-create-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-transfer-report-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-action-check-input-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-metric-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-finding-schema.json
+- aid: zelto:zelto-customer-metrics-api
+  name: Zelto Customer Metrics API
+  description: Customer-provided evaluations attached to a call (requires metrics enabled).
+  humanURL: https://docs.zelto.ai/api-reference
+  baseURL: https://api.zelto.ai
+  tags:
+  - Customer Metrics
+  properties:
+  - type: OpenAPI
+    url: openapi/zelto-customer-metrics-api-openapi.yml
+  - type: JSONSchema
+    url: json-schema/zelto-call-ingest-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-experiment-create-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-transfer-report-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-action-check-input-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-metric-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-finding-schema.json
+- aid: zelto:zelto-experiments-api
+  name: Zelto Experiments API
+  description: >-
+    Prospective measurement of two externally routed prompt versions across independent monitor outcomes.
+  humanURL: https://docs.zelto.ai/api-reference
+  baseURL: https://api.zelto.ai
+  tags:
+  - Experiments
+  properties:
+  - type: OpenAPI
+    url: openapi/zelto-experiments-api-openapi.yml
+  - type: JSONSchema
+    url: json-schema/zelto-call-ingest-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-experiment-create-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-transfer-report-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-action-check-input-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-metric-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-finding-schema.json
+- aid: zelto:zelto-findings-api
+  name: Zelto Findings API
+  description: >-
+    Structured issues discovered during analysis, with optional conversation attachments and comments.
+  humanURL: https://docs.zelto.ai/api-reference
+  baseURL: https://api.zelto.ai
+  tags:
+  - Findings
+  properties:
+  - type: OpenAPI
+    url: openapi/zelto-findings-api-openapi.yml
+  - type: JSONSchema
+    url: json-schema/zelto-call-ingest-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-experiment-create-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-transfer-report-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-action-check-input-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-metric-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-finding-schema.json
+- aid: zelto:zelto-organizations-api
+  name: Zelto Organizations API
+  description: >-
+    Headless org provisioning. Requires an admin/service API key (not a read-only org-scoped customer
+    key).
+  humanURL: https://docs.zelto.ai/api-reference
+  baseURL: https://api.zelto.ai
+  tags:
+  - Organizations
+  properties:
+  - type: OpenAPI
+    url: openapi/zelto-organizations-api-openapi.yml
+  - type: JSONSchema
+    url: json-schema/zelto-call-ingest-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-experiment-create-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-transfer-report-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-action-check-input-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-metric-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-finding-schema.json
+- aid: zelto:zelto-reports-api
+  name: Zelto Reports API
+  description: The Reports API from Zelto — 3 operation(s) for reports.
+  humanURL: https://docs.zelto.ai/api-reference
+  baseURL: https://api.zelto.ai
+  tags:
+  - Reports
+  properties:
+  - type: OpenAPI
+    url: openapi/zelto-reports-api-openapi.yml
+  - type: JSONSchema
+    url: json-schema/zelto-call-ingest-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-experiment-create-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-transfer-report-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-action-check-input-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-metric-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-finding-schema.json
+- aid: zelto:zelto-reviews-api
+  name: Zelto Reviews API
+  description: Human review state for conversations.
+  humanURL: https://docs.zelto.ai/api-reference
+  baseURL: https://api.zelto.ai
+  tags:
+  - Reviews
+  properties:
+  - type: OpenAPI
+    url: openapi/zelto-reviews-api-openapi.yml
+  - type: JSONSchema
+    url: json-schema/zelto-call-ingest-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-experiment-create-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-transfer-report-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-action-check-input-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-customer-metric-schema.json
+  - type: JSONSchema
+    url: json-schema/zelto-finding-schema.json
 x-submission-notes: Production QA for voice AI agents; REST API, llms.txt
 x-submission-probe: root 200, api-reference 200, llms.txt 200 text, soft-404 OK
 x-submitted-by: a@zelto.ai (email, 2026-10-15)
+x-coverage:
+  state: gated
+  reason: partner-login
+  method: derived
+  generated: '2026-10-15'
+  generator: derive-coverage.py (pre-flight evidence)
+  detail: the company serves an API surface but requires credentials before any description of it can be read
+  evidence:
+  - url: https://docs.zelto.ai/mcp
+    status: null
+  - url: https://api.zelto.ai/openapi.json
+    status: null
+  - url: https://dashboard.zelto.ai/openapi.json
+    status: null
+  - url: https://api.zelto.ai/mcp
+    status: 401
+  - url: https://dashboard.zelto.ai/mcp
+    status: 401
+  - url: https://trust.zelto.ai/mcp
+    status: 403
+x-enrichment:
+  date: '2026-10-15'
+  status: enriched
+  artifacts_added: 37
+  pass: modular-v1
+  engine: identity=local,contract=local,surfaces=local,docs=local,regulatory=local

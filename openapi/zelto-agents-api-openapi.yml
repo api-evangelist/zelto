@@ -1,0 +1,240 @@
+openapi: 3.2.0
+info:
+  title: Zelto REST Agents API
+  version: v1
+  description: Programmatic access to your Zelto organization. Every endpoint is scoped to the organization the API key belongs to. Mint a key at Settings → Integrations → API Call Upload.
+servers:
+- url: https://api.zelto.ai
+  description: Production
+security:
+- bearerAuth: []
+tags:
+- name: Agents
+  description: Voice and chat bots normalised through Zelto's ingestion pipeline.
+paths:
+  /v1/agents:
+    get:
+      summary: List agents
+      operationId: listAgents
+      tags:
+      - Agents
+      parameters:
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Page of agents.
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/PageEnvelope'
+                - type: object
+                  properties:
+                    data:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Agent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/agents/{id}:
+    get:
+      summary: Get an agent
+      operationId: getAgent
+      tags:
+      - Agents
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: The agent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/agents/{id}/versions:
+    post:
+      summary: Register an agent version
+      operationId: registerAgentVersion
+      tags:
+      - Agents
+      description: Register a release prompt and context before calls arrive. Requires a key belonging to an organization owner or admin. Repeating the same values returns the existing ID; changes require a new label. Send that label as version on every call for the same agent. Does not deploy the agent or route traffic. See /docs/agent-versions.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterAgentVersion'
+      responses:
+        '201':
+          description: Version registered.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - id
+                - created
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  created:
+                    type: boolean
+        '200':
+          description: Identical version already registered.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - id
+                - created
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  created:
+                    type: boolean
+        '400':
+          description: Invalid input or human agent.
+        '403':
+          description: Requires an organization owner or admin.
+        '409':
+          description: The label already exists with a different prompt or configuration. Use a new label.
+        '500':
+          description: Could not register the version.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  schemas:
+    PageEnvelope:
+      type: object
+      required:
+      - data
+      - nextCursor
+      properties:
+        data:
+          type: array
+          items: {}
+        nextCursor:
+          type: string
+          nullable: true
+    RegisterAgentVersion:
+      type: object
+      required:
+      - version
+      properties:
+        version:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: 'Case-sensitive release label after trimming whitespace. The draft: and generated: prefixes are reserved.'
+        systemPrompt:
+          type: string
+          maxLength: 200000
+        config:
+          $ref: '#/components/schemas/AgentVersionConfig'
+    Agent:
+      type: object
+      required:
+      - id
+      - name
+      - description
+      - externalId
+      - provider
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        externalId:
+          type: string
+          nullable: true
+        provider:
+          type: string
+          nullable: true
+          description: '`vapi`, `retell`, `speechify`, `livekit`, or null for direct uploads.'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message, e.g. Unauthorized or Validation failed.
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    AgentVersionConfig:
+      type: object
+      additionalProperties: true
+      description: Complete version context as a JSON object, up to 64 KiB serialized as UTF-8. Can include llm, stt, tts, tools, workflows, retrieval, and custom settings. Records context only; does not deploy or execute this configuration. Do not include secrets.
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque pagination cursor. Pass the `nextCursor` returned by the previous page.
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Items per page. Default 50, max 200.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+  responses:
+    Unauthorized:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found in your organization.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'Send `Authorization: Bearer YOUR_API_KEY`. The key resolves to a single organization.'

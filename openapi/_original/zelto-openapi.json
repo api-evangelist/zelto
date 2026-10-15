@@ -1,0 +1,2517 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Zelto REST API",
+    "version": "v1",
+    "description": "Programmatic access to your Zelto organization. Every endpoint is scoped to the organization the API key belongs to. Mint a key at Settings → Integrations → API Call Upload."
+  },
+  "servers": [
+    {
+      "url": "https://api.zelto.ai",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    { "name": "Agents", "description": "Voice and chat bots normalised through Zelto's ingestion pipeline." },
+    { "name": "Conversations", "description": "Calls, chats, and voicemails — plus their transcripts and recordings." },
+    { "name": "Customer Metrics", "description": "Customer-provided evaluations attached to a call (requires metrics enabled)." },
+    { "name": "Reviews", "description": "Human review state for conversations." },
+    { "name": "Buckets", "description": "Reviewer routing — group conversations for batched review." },
+    { "name": "Companies", "description": "Clients or brands your agents work for, and their logos." },
+    { "name": "Findings", "description": "Structured issues discovered during analysis, with optional conversation attachments and comments." },
+    { "name": "Experiments", "description": "Prospective measurement of two externally routed prompt versions across independent monitor outcomes." },
+    { "name": "Organizations", "description": "Headless org provisioning. Requires an admin/service API key (not a read-only org-scoped customer key)." }
+  ],
+  "security": [{ "bearerAuth": [] }],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Send `Authorization: Bearer YOUR_API_KEY`. The key resolves to a single organization."
+      }
+    },
+    "parameters": {
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Items per page. Default 50, max 200.",
+        "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 }
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Opaque pagination cursor. Pass the `nextCursor` returned by the previous page.",
+        "schema": { "type": "string" }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": { "type": "string", "description": "Human-readable error message, e.g. Unauthorized or Validation failed." },
+          "message": { "type": "string" },
+          "details": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "ExperimentCreate": {
+        "type": "object",
+        "required": ["name", "agentId", "armAVersionId", "armBVersionId", "outcomeMetricIds", "primaryMetricId", "stableRoutingConfirmed"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+          "description": { "type": ["string", "null"], "maxLength": 2000 },
+          "agentId": { "type": "string", "format": "uuid" },
+          "armAVersionId": { "type": "string", "format": "uuid" },
+          "armBVersionId": { "type": "string", "format": "uuid" },
+          "armAName": { "type": ["string", "null"], "maxLength": 120 },
+          "armBName": { "type": ["string", "null"], "maxLength": 120 },
+          "cohortFilters": { "type": "array", "maxItems": 12, "items": { "type": "object", "additionalProperties": true } },
+          "assignmentUnit": {
+            "oneOf": [
+              { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "auto" } } },
+              { "type": "object", "required": ["kind", "key"], "properties": { "kind": { "const": "metadata" }, "key": { "type": "string", "minLength": 1, "maxLength": 120 } } }
+            ]
+          },
+          "expectedArmAPercent": { "type": "integer", "minimum": 1, "maximum": 99, "default": 50 },
+          "outcomeMetricIds": { "type": "array", "minItems": 1, "items": { "type": "string", "format": "uuid" } },
+          "primaryMetricId": { "type": "string", "format": "uuid" },
+          "monitorGroupId": { "type": "string", "format": "uuid", "description": "Reuse a saved group from GET /v1/experiments/monitor-groups. outcomeMetricIds must match the group's current metricIds. Cannot be combined with newMonitorGroupName." },
+          "newMonitorGroupName": { "type": "string", "minLength": 1, "maxLength": 255, "description": "Save outcomeMetricIds as a reusable organization group when launching. Cannot be combined with monitorGroupId." },
+          "notifications": {
+            "type": "object",
+            "properties": {
+              "emails": { "type": "array", "maxItems": 20, "items": { "type": "string", "format": "email" } }
+            }
+          },
+          "stableRoutingConfirmed": { "const": true, "description": "Confirms that traffic is assigned consistently outside Zelto." }
+        }
+      },
+      "ProvisionedOrganization": {
+        "type": "object",
+        "required": ["id", "slug", "orgUrl", "ownerUserId", "created"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "slug": { "type": "string", "description": "URL slug, `<name>-<8 hex>`." },
+          "orgUrl": { "type": "string", "format": "uri", "description": "Absolute URL to the org dashboard." },
+          "ownerUserId": { "type": "string", "format": "uuid" },
+          "created": {
+            "type": "object",
+            "required": ["org", "user"],
+            "description": "Whether each entity was newly created (vs. reused).",
+            "properties": {
+              "org": { "type": "boolean" },
+              "user": { "type": "boolean" }
+            }
+          }
+        }
+      },
+      "Agent": {
+        "type": "object",
+        "required": ["id", "name", "description", "externalId", "provider", "createdAt", "updatedAt"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "description": { "type": "string", "nullable": true },
+          "externalId": { "type": "string", "nullable": true },
+          "provider": { "type": "string", "nullable": true, "description": "`vapi`, `retell`, `speechify`, `livekit`, or null for direct uploads." },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Conversation": {
+        "type": "object",
+        "required": ["id", "agentId", "name", "source", "createdAt", "updatedAt"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "agentId": { "type": "string", "format": "uuid" },
+          "receiverId": { "type": "string", "format": "uuid", "nullable": true },
+          "name": { "type": "string" },
+          "referenceId": { "type": "string", "nullable": true },
+          "source": { "type": "string", "description": "Where the call came from, e.g. `vapi`, `retell`, `speechify`, `livekit`, `upload`." },
+          "endedReason": { "type": "string", "nullable": true },
+          "cost": { "type": "string", "nullable": true, "description": "Provider-reported cost in dollars, as a string for precision." },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Transcript": {
+        "type": "object",
+        "required": ["conversationId", "createdAt"],
+        "properties": {
+          "conversationId": { "type": "string", "format": "uuid" },
+          "recordingUrl": { "type": "string", "nullable": true, "description": "URL to the recording. Re-hosted by Zelto when the provider's URL would otherwise expire. For organizations under a BAA (PHI mode) this is an authenticated endpoint — GET it with the same Bearer API key and follow the 302 to a short-lived signed URL." },
+          "durationSeconds": { "type": "number", "nullable": true },
+          "content": { "description": "Turn-by-turn transcript JSON." },
+          "systemPrompt": { "type": "string", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CustomerMetric": {
+        "type": "object",
+        "required": ["id", "organizationId", "conversationId", "agentId", "label", "source", "createdAt", "updatedAt"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "organizationId": { "type": "string", "format": "uuid" },
+          "conversationId": { "type": "string", "format": "uuid" },
+          "agentId": { "type": "string", "format": "uuid" },
+          "metricId": { "type": "string", "format": "uuid", "nullable": true, "description": "The Zelto metric this customer metric maps to, if any." },
+          "label": { "type": "string", "description": "The customer's name for the metric, e.g. \"Compliance Check\"." },
+          "externalId": { "type": "string", "nullable": true, "description": "The customer's own id for this record." },
+          "verdict": { "type": "string", "enum": ["pass", "fail"], "nullable": true },
+          "score": { "type": "number", "nullable": true, "description": "0–100. Null when only a pass/fail verdict was sent." },
+          "note": { "type": "string", "nullable": true },
+          "source": { "type": "string", "description": "Provenance of the record, e.g. `api`." },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Review": {
+        "type": "object",
+        "required": ["id", "entityType", "entityId", "status", "createdAt", "updatedAt"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "entityType": { "type": "string", "enum": ["call", "agent"], "description": "Reviewed entity type." },
+          "entityId": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "enum": ["pending", "reviewed", "flagged"] },
+          "reviewerId": { "type": "string", "format": "uuid", "nullable": true },
+          "aiModel": { "type": "string", "nullable": true },
+          "aiGeneratedAt": { "type": "string", "format": "date-time", "nullable": true },
+          "notes": { "type": "string", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Company": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "logoUrl",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "logoUrl": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "The uploaded or customer-supplied logo. `null` means the dashboard shows the default mark: the company's initials."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Bucket": {
+        "type": "object",
+        "required": ["id", "organizationId", "agentId", "name", "type", "filters", "createdAt", "updatedAt"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "organizationId": { "type": "string", "format": "uuid" },
+          "agentId": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "type": { "type": "string", "enum": ["static"] },
+          "filters": { "type": "object", "additionalProperties": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Finding": {
+        "type": "object",
+        "required": ["id", "title", "status", "priority", "tags", "createdAt", "updatedAt"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string" },
+          "description": { "type": "object", "additionalProperties": true, "description": "TipTap JSON document. May contain `agentPrompt` blocks ({type: agentPrompt, attrs: {agentId, agentName, agentVersionId?, versionNumber?, lineStart?, lineEnd?, excerpt}}); `excerpt` must be verbatim from that agent version's system prompt, else 400." },
+          "status": { "type": "string", "enum": ["open", "acknowledged", "resolved", "ignored"] },
+          "priority": { "type": "string", "enum": ["none", "low", "medium", "high", "urgent"] },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "findingType": { "type": "integer", "nullable": true },
+          "assigneeUserId": { "type": "string", "format": "uuid", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "FindingConversation": {
+        "type": "object",
+        "required": ["findingId", "conversationId", "createdAt"],
+        "properties": {
+          "findingId": { "type": "string", "format": "uuid" },
+          "conversationId": { "type": "string", "format": "uuid" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "alreadyExisted": { "type": "boolean", "description": "Returned on idempotent re-add." }
+        }
+      },
+      "Comment": {
+        "type": "object",
+        "required": ["id", "body", "type", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "body": { "type": "string" },
+          "type": { "type": "string", "enum": ["annotation", "comment"] },
+          "annotationStartMs": { "type": "integer", "nullable": true },
+          "annotationEndMs": { "type": "integer", "nullable": true },
+          "authorUserId": { "type": "string", "format": "uuid", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CallIngestTurn": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": { "type": "string", "enum": ["user", "assistant", "system", "tool"] },
+          "content": { "type": "string", "minLength": 1 },
+          "startSeconds": { "type": "number", "minimum": 0 },
+          "endSeconds": { "type": "number", "minimum": 0 },
+          "words": {
+            "type": "array",
+            "description": "Optional word-level audio timing used for synchronized transcript playback.",
+            "items": {
+              "type": "object",
+              "required": ["word", "startSeconds"],
+              "properties": {
+                "word": { "type": "string", "minLength": 1 },
+                "startSeconds": { "type": "number", "minimum": 0 },
+                "endSeconds": { "type": "number", "minimum": 0 }
+              }
+            }
+          }
+        }
+      },
+      "CallIngest": {
+        "type": "object",
+        "required": ["call"],
+        "description": "Zelto's canonical call upload shape (`X-Zelto-Provider: zelto`). Provide either `agent.externalId` (find-or-create) or `agentId` (attach to an existing agent).",
+        "properties": {
+          "agent": {
+            "type": "object",
+            "description": "Find-or-create an agent by your own id. Required unless `agentId` is given.",
+            "properties": {
+              "externalId": { "type": "string", "minLength": 1 },
+              "name": { "type": "string", "minLength": 1, "maxLength": 255, "description": "Used only when the agent is first created." }
+            }
+          },
+          "agentId": { "type": "string", "format": "uuid", "description": "Attach to an existing Zelto agent. Takes precedence over `agent.externalId`." },
+          "version": { "type": "string", "minLength": 1, "maxLength": 255, "description": "Release label of the agent that actually handled this call. Optional for ingestion; send it on every call for reliable experiments. Case-sensitive, 1–255 characters after trimming. The same agent and label reuse a version; a new label creates one on the first processed call. Keep the agent ID stable and change this label for prompt or pipeline changes. Preserve the original label on retries. This is a top-level field, not metadata.version. See /docs/agent-versions." },
+          "companyExternalId": { "type": "string", "minLength": 1, "maxLength": 255, "description": "Your stable per-call id for the client or brand this call belongs to. When Companies is enabled, Zelto maps it to a company; otherwise the agent's default company is used when available." },
+          "call": {
+            "type": "object",
+            "required": ["externalId"],
+            "properties": {
+              "externalId": { "type": "string", "minLength": 1, "description": "Your call id. Dedup key — re-uploading the same id updates the call in place." },
+              "startedAt": { "type": "string", "format": "date-time" },
+              "endedAt": { "type": "string", "format": "date-time" },
+              "durationSeconds": { "type": "integer", "minimum": 0, "description": "Derived from startedAt/endedAt when omitted." },
+              "endedReason": { "type": "string", "maxLength": 100 },
+              "cost": { "type": "number", "minimum": 0, "description": "Cost in dollars." },
+              "recordingUrl": { "type": "string", "maxLength": 2048 },
+              "recordingUploadId": { "type": "string", "format": "uuid", "description": "Opaque id returned by POST /v1/recording-uploads after direct upload of a local recording. Mutually exclusive with recordingUrl." },
+              "customer": {
+                "type": "object",
+                "properties": {
+                  "number": { "type": "string", "maxLength": 50, "description": "Inbound caller number; used to resolve a receiver." },
+                  "name": { "type": "string", "maxLength": 255 }
+                }
+              }
+            }
+          },
+          "transcript": {
+            "type": "object",
+            "required": ["turns"],
+            "properties": {
+              "turns": { "type": "array", "minItems": 1, "items": { "$ref": "#/components/schemas/CallIngestTurn" } }
+            }
+          },
+          "systemPrompt": { "type": "string", "description": "Actual system prompt of the version that handled this call. A leading system transcript turn is used if omitted. Available text is captured when a version is first observed, or fills a missing prompt later; an existing prompt snapshot is not overwritten. A version label alone does not supply a prompt." },
+          "metadata": { "type": "object", "additionalProperties": true, "description": "Free-form metadata stored on the conversation." },
+          "versionConfig": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AgentVersionConfig"
+              }
+            ],
+            "description": "Context for the version that handled this call. Requires the version field. Captured when the version is observed; does not overwrite an existing configuration snapshot. Use config when registering through POST /v1/agents/{id}/versions."
+          }
+        }
+      },
+      "PageEnvelope": {
+        "type": "object",
+        "required": ["data", "nextCursor"],
+        "properties": {
+          "data": { "type": "array", "items": {} },
+          "nextCursor": { "type": "string", "nullable": true }
+        }
+      },
+      "ActionCheckInput": {
+        "type": "object",
+        "required": [
+          "agentId",
+          "referenceData",
+          "comparisons"
+        ],
+        "properties": {
+          "agentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "referenceData": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "comparisons": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "expectedPath",
+                "actualPath"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "expectedPath": {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                "actualPath": {
+                  "type": "string",
+                  "maxLength": 120
+                }
+              }
+            }
+          },
+          "tools": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "status"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "succeeded",
+                    "failed",
+                    "pending",
+                    "not_called"
+                  ]
+                }
+              }
+            },
+            "description": "Tool keys must be unique and distinct from comparison keys. Keys are case-sensitive and trimmed. Send one authoritative status per execution prerequisite."
+          },
+          "requiredTools": {
+            "type": "array",
+            "maxItems": 20,
+            "uniqueItems": true,
+            "default": [],
+            "description": "Caller-owned prerequisite tool keys, independent of reported executions. Every listed tool must be reported as succeeded. Omitted required tools produce missing and block approval. Use only pre-action prerequisites, not the action being authorized. Defaults to an empty list for compatibility.",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        }
+      },
+      "ActionCheckDecision": {
+        "type": "object",
+        "required": [
+          "decision",
+          "allowed",
+          "checks"
+        ],
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "proceed",
+              "request_clarification",
+              "flag_mismatch"
+            ]
+          },
+          "allowed": {
+            "type": "boolean"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "status"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "matched",
+                    "mismatch",
+                    "missing",
+                    "failed",
+                    "pending"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "CustomerCostReport": {
+        "type": "object",
+        "required": [
+          "rows",
+          "failures",
+          "monitors",
+          "window"
+        ],
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "companyId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "companyName": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "metricId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "component": {
+                  "type": "string",
+                  "enum": [
+                    "calls",
+                    "traces",
+                    "monitoring"
+                  ]
+                },
+                "amountUsd": {
+                  "type": "number"
+                },
+                "events": {
+                  "type": "integer"
+                },
+                "unknownCosts": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "calls",
+                "traces",
+                "monitoring"
+              ]
+            }
+          },
+          "monitors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "sampleRate": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "window": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date"
+              },
+              "to": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ]
+          }
+        }
+      },
+      "CustomerTransferReport": {
+        "type": "object",
+        "required": [
+          "monitor",
+          "window",
+          "rows",
+          "questions",
+          "agents"
+        ],
+        "properties": {
+          "monitor": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": "integer"
+              },
+              "sampleRate": {
+                "type": "number"
+              }
+            }
+          },
+          "window": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date"
+              },
+              "to": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ]
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "agentId": {
+                  "type": "string"
+                },
+                "disposition": {
+                  "type": "string"
+                },
+                "patientType": {
+                  "type": "string"
+                },
+                "task": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "evaluated": {
+                  "type": "integer"
+                },
+                "examples": {
+                  "type": "array",
+                  "maxItems": 3,
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          },
+          "agents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "agentId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "calls": {
+                  "type": "integer"
+                },
+                "evaluated": {
+                  "type": "integer"
+                },
+                "avoidable": {
+                  "type": "integer"
+                },
+                "abandoned": {
+                  "type": "integer"
+                },
+                "completed": {
+                  "type": "integer"
+                },
+                "taskKnown": {
+                  "type": "integer"
+                },
+                "dispositionKnown": {
+                  "type": "integer"
+                },
+                "avoidableRate": {
+                  "type": "number",
+                  "nullable": true
+                },
+                "completionRate": {
+                  "type": "number",
+                  "nullable": true
+                },
+                "incomplete": {
+                  "type": "integer"
+                },
+                "failureRate": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "questions": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "properties": {
+                "question": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "examples": {
+                  "type": "array",
+                  "maxItems": 3,
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "AgentVersionConfig": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "Complete version context as a JSON object, up to 64 KiB serialized as UTF-8. Can include llm, stt, tts, tools, workflows, retrieval, and custom settings. Records context only; does not deploy or execute this configuration. Do not include secrets."
+      },
+      "RegisterAgentVersion": {
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "properties": {
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "Case-sensitive release label after trimming whitespace. The draft: and generated: prefixes are reserved."
+          },
+          "systemPrompt": {
+            "type": "string",
+            "maxLength": 200000
+          },
+          "config": {
+            "$ref": "#/components/schemas/AgentVersionConfig"
+          }
+        }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Missing or invalid API key.",
+        "content": {
+          "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found in your organization.",
+        "content": {
+          "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+        }
+      },
+      "ValidationFailed": {
+        "description": "Request body failed validation.",
+        "content": {
+          "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+        }
+      },
+      "Forbidden": {
+        "description": "The key is valid but not allowed to perform this operation (e.g. a read-only org-scoped customer key calling a service-only endpoint).",
+        "content": {
+          "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/v1/reports/monitors/{reportId}": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Get a saved monitor report",
+        "description": "Aggregate selected monitors for inclusive local dates (maximum 31 days), defaulting to the previous complete Monday–Sunday. Applies the saved company and metadata scope. Affected rate uses current-version evaluated calls as denominator. Requires Reports. Use deliveryId for an immutable historical snapshot.",
+        "operationId": "getMonitorReport",
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "deliveryId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "csv",
+                "pdf"
+              ],
+              "default": "json"
+            }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "description": "PDF language; defaults to the request locale.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "en-us",
+                "es",
+                "pt"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Report snapshot, CSV or PDF export",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "schemaVersion": {
+                      "type": "integer",
+                      "const": 1
+                    },
+                    "reportId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "generatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "rateDenominator": {
+                      "type": "string",
+                      "const": "evaluated"
+                    },
+                    "period": {
+                      "type": "object",
+                      "properties": {
+                        "from": {
+                          "type": "string",
+                          "format": "date"
+                        },
+                        "to": {
+                          "type": "string",
+                          "format": "date"
+                        },
+                        "timezone": {
+                          "type": "string"
+                        },
+                        "since": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "until": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "scope": {
+                      "type": "object",
+                      "properties": {
+                        "companyId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "uuid"
+                        },
+                        "metadataFilters": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "op": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "companyName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Company name captured at generation; absent on older snapshots."
+                        }
+                      }
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "population": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "evaluated": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "unscored": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "withoutResult": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "affected": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "monitorId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "available",
+                              "missing"
+                            ]
+                          },
+                          "sampleRate": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "affectedLabel": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "affectedRate": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "averageScore": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid dates or format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Reports feature unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Report or delivery not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Report generation unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents": {
+      "get": {
+        "summary": "List agents",
+        "operationId": "listAgents",
+        "tags": ["Agents"],
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of agents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/PageEnvelope" },
+                    { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Agent" } } } }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/v1/agents/{id}": {
+      "get": {
+        "summary": "Get an agent",
+        "operationId": "getAgent",
+        "tags": ["Agents"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "The agent.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Agent" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/conversations": {
+      "get": {
+        "summary": "List conversations",
+        "operationId": "listConversations",
+        "tags": ["Conversations"],
+        "parameters": [
+          { "name": "agentId", "in": "query", "schema": { "type": "string", "format": "uuid" }, "description": "Filter to one agent." },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of conversations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/PageEnvelope" },
+                    { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Conversation" } } } }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/v1/conversations/{id}": {
+      "get": {
+        "summary": "Get a conversation",
+        "operationId": "getConversation",
+        "tags": ["Conversations"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "The conversation.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Conversation" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/conversations/{id}/transcript": {
+      "get": {
+        "summary": "Get a conversation transcript",
+        "operationId": "getTranscript",
+        "tags": ["Conversations"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "The transcript with content and (if available) recording URL.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Transcript" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/conversations/{id}/customer-metrics": {
+      "get": {
+        "summary": "List a call's customer metrics",
+        "operationId": "listCustomerMetrics",
+        "tags": ["Customer Metrics"],
+        "description": "List the customer-provided metrics attached to a call. Requires metrics to be enabled for the organization.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "The call's customer metrics.", "content": { "application/json": { "schema": { "type": "object", "required": ["data"], "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/CustomerMetric" } } } } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "description": "Metrics are not enabled for this organization.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "post": {
+        "summary": "Submit a customer metric",
+        "operationId": "createCustomerMetric",
+        "tags": ["Customer Metrics"],
+        "description": "Create or replace a customer-provided metric for a call. Send a `verdict` (pass/fail) and/or a `score` (0–100), and optionally map it to one of your Zelto metrics with `metricId`. Idempotent on `(conversation, label)`: resubmitting the same `label` replaces the prior value. Requires metrics to be enabled for the organization.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["label"],
+                "description": "Provide at least one of `verdict` or `score`.",
+                "properties": {
+                  "label": { "type": "string", "minLength": 1, "maxLength": 255, "description": "The customer's name for this metric, e.g. \"Compliance Check\"." },
+                  "verdict": { "type": "string", "enum": ["pass", "fail"] },
+                  "score": { "type": "number", "minimum": 0, "maximum": 100 },
+                  "note": { "type": "string", "maxLength": 5000 },
+                  "metricId": { "type": "string", "format": "uuid", "description": "Map this customer metric to one of your Zelto metrics on the call's agent." },
+                  "externalId": { "type": "string", "maxLength": 255, "description": "Your own id for this record." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "The created (or replaced) customer metric.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CustomerMetric" } } } },
+          "400": { "$ref": "#/components/responses/ValidationFailed" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "description": "Metrics are not enabled, or the mapped metric is not in your organization.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/webhooks/calls": {
+      "servers": [{ "url": "https://ingest.zelto.ai", "description": "AWS ingestion endpoint" }],
+      "post": {
+        "summary": "Upload a call",
+        "operationId": "uploadCall",
+        "tags": ["Conversations"],
+        "description": "Provider-agnostic call ingestion. POST a call in Zelto's canonical shape (the default), or a native Vapi/Retell webhook payload selected with the `X-Zelto-Provider` header. The delivery is acknowledged immediately and processed asynchronously into a conversation + transcript. Deduplicated by call id: re-uploading the same call updates it in place and never double-charges. Non-terminal native events (e.g. Vapi `status-update`) are accepted and ignored.",
+        "parameters": [
+          {
+            "name": "X-Zelto-Provider",
+            "in": "header",
+            "required": false,
+            "description": "Which schema the request body uses. Defaults to `zelto` (the canonical CallIngest shape, also used by `livekit`). Native `vapi` / `retell` webhook payloads are also accepted.",
+            "schema": { "type": "string", "enum": ["zelto", "vapi", "retell", "livekit"], "default": "zelto" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "When `X-Zelto-Provider` is `zelto` (or omitted), the canonical CallIngest body. When `vapi` / `retell`, that provider's native webhook payload.",
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/CallIngest" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted for processing. Also returned for duplicate deliveries and dropped (non-terminal) events.",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object", "required": ["received"], "properties": { "received": { "type": "boolean" } } }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationFailed" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/v1/recording-uploads": {
+      "servers": [{ "url": "https://ingest.zelto.ai", "description": "AWS ingestion endpoint" }],
+      "post": {
+        "summary": "Create a direct recording upload",
+        "operationId": "createRecordingUpload",
+        "tags": ["Conversations"],
+        "description": "Creates a short-lived, organization-scoped S3 upload target for a local audio recording. PUT bytes to uploadUrl, then pass id as call.recordingUploadId to /webhooks/calls. Recording bytes bypass the Zelto API service.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["contentType", "sizeBytes"], "properties": { "contentType": { "type": "string", "example": "audio/wav" }, "sizeBytes": { "type": "integer", "minimum": 1, "maximum": 1073741824 }, "filename": { "type": "string" } } } } } },
+        "responses": { "201": { "description": "Upload target", "content": { "application/json": { "schema": { "type": "object", "properties": { "id": { "type": "string", "format": "uuid" }, "uploadUrl": { "type": "string", "format": "uri" }, "headers": { "type": "object", "additionalProperties": { "type": "string" } }, "expiresAt": { "type": "string", "format": "date-time" } } } } } }, "400": { "$ref": "#/components/responses/ValidationFailed" }, "401": { "$ref": "#/components/responses/Unauthorized" } }
+      }
+    },
+    "/v1/reviews": {
+      "get": {
+        "summary": "List reviews",
+        "operationId": "listReviews",
+        "tags": ["Reviews"],
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["pending", "reviewed", "flagged"] } },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of reviews.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/PageEnvelope" },
+                    { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Review" } } } }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/v1/reviews/{id}": {
+      "get": {
+        "summary": "Get a review",
+        "operationId": "getReview",
+        "tags": ["Reviews"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "The review.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Review" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/buckets": {
+      "get": {
+        "summary": "List buckets",
+        "operationId": "listBuckets",
+        "tags": ["Buckets"],
+        "parameters": [
+          { "name": "agentId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of buckets.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/PageEnvelope" },
+                    { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Bucket" } } } }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "summary": "Create a bucket",
+        "operationId": "createBucket",
+        "tags": ["Buckets"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["agentId", "name"],
+                "properties": {
+                  "agentId": { "type": "string", "format": "uuid" },
+                  "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+                  "type": { "type": "string", "enum": ["static"], "default": "static" },
+                  "filters": { "type": "object", "additionalProperties": true, "default": {} }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "The created bucket.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Bucket" } } } },
+          "400": { "$ref": "#/components/responses/ValidationFailed" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "description": "Agent not in your organization.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/v1/buckets/{id}": {
+      "get": {
+        "summary": "Get a bucket",
+        "operationId": "getBucket",
+        "tags": ["Buckets"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "The bucket.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Bucket" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/buckets/{id}/conversations": {
+      "get": {
+        "summary": "List conversations in a bucket",
+        "operationId": "listBucketConversations",
+        "tags": ["Buckets"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of conversations in the bucket.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/PageEnvelope" },
+                    { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Conversation" } } } }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "post": {
+        "summary": "Add a conversation to a bucket",
+        "operationId": "addConversationToBucket",
+        "tags": ["Buckets"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["conversationId"],
+                "properties": {
+                  "conversationId": { "type": "string", "format": "uuid" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Conversation added (or already present). Idempotent.", "content": { "application/json": { "schema": { "type": "object", "properties": { "bucketId": { "type": "string", "format": "uuid" }, "conversationId": { "type": "string", "format": "uuid" }, "alreadyExisted": { "type": "boolean" } } } } } },
+          "400": { "$ref": "#/components/responses/ValidationFailed" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/buckets/{id}/conversations/{conversationId}": {
+      "delete": {
+        "summary": "Remove a conversation from a bucket",
+        "operationId": "removeConversationFromBucket",
+        "tags": ["Buckets"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "conversationId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "204": { "description": "Removed." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/companies": {
+      "get": {
+        "summary": "List companies",
+        "description": "Companies (clients or brands your agents work for) in the key's organization, newest first.",
+        "operationId": "listCompanies",
+        "tags": [
+          "Companies"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of companies.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PageEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Company"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/companies/{id}": {
+      "get": {
+        "summary": "Get a company",
+        "operationId": "getCompany",
+        "tags": [
+          "Companies"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The company.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update a company",
+        "description": "Set the company's logo to an image you host, or send `null` to go back to the default mark. To upload an image file instead, use `PUT /v1/companies/{id}/logo`.",
+        "operationId": "updateCompany",
+        "tags": [
+          "Companies"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "logoUrl"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "logoUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "maxLength": 2048,
+                    "nullable": true,
+                    "description": "A public `https` URL of the logo image. It is stored as-is and loaded by the viewer's browser; if it can't be loaded, the default mark is shown. `null` removes the logo.",
+                    "example": "https://example.com/acme-logo.png"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated company.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/v1/companies/{id}/logo": {
+      "put": {
+        "summary": "Upload a company logo",
+        "description": "Upload a PNG, JPEG, or WebP image of up to 2 MB as the company's logo. Send the raw image bytes, or `multipart/form-data` with the image in a `file` field. The image type is detected from its contents. Square images look best. SVG is not accepted as an upload; host it yourself and set it with `PATCH /v1/companies/{id}`.",
+        "operationId": "uploadCompanyLogo",
+        "tags": [
+          "Companies"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/webp": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The company with its new logo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty body, or a multipart body without a `file` field.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "413": {
+            "description": "The image is larger than 2 MB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The bytes are not a PNG, JPEG, or WebP image.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove a company logo",
+        "description": "Remove the logo. The company goes back to its default mark.",
+        "operationId": "deleteCompanyLogo",
+        "tags": [
+          "Companies"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The company without a logo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/v1/findings": {
+      "get": {
+        "summary": "List findings",
+        "operationId": "listFindings",
+        "tags": ["Findings"],
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["open", "acknowledged", "resolved", "ignored"] } },
+          { "name": "priority", "in": "query", "schema": { "type": "string", "enum": ["none", "low", "medium", "high", "urgent"] } },
+          { "name": "tags", "in": "query", "schema": { "type": "string", "description": "Comma-separated list of tags." } },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of findings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/PageEnvelope" },
+                    { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Finding" } } } }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "summary": "Create a finding",
+        "operationId": "createFinding",
+        "tags": ["Findings"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title"],
+                "properties": {
+                  "title": { "type": "string", "minLength": 1 },
+                  "description": { "type": "object", "additionalProperties": true, "description": "TipTap JSON document. May contain `agentPrompt` blocks ({type: agentPrompt, attrs: {agentId, agentName, agentVersionId?, versionNumber?, lineStart?, lineEnd?, excerpt}}); `excerpt` must be verbatim from that agent version's system prompt, else 400." },
+                  "status": { "type": "string", "enum": ["open", "acknowledged", "resolved", "ignored"], "default": "open" },
+                  "priority": { "type": "string", "enum": ["none", "low", "medium", "high", "urgent"], "default": "none" },
+                  "tags": { "type": "array", "items": { "type": "string" }, "default": [] },
+                  "findingType": { "type": "integer", "nullable": true },
+                  "conversationIds": { "type": "array", "items": { "type": "string", "format": "uuid" }, "description": "Optional conversation UUIDs to attach to the new finding on creation." },
+                  "analyzedFromDate": { "type": "string", "format": "date-time", "description": "Optional start of the analyzed time range this finding summarizes." },
+                  "analyzedToDate": { "type": "string", "format": "date-time", "description": "Optional end of the analyzed time range this finding summarizes." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Created finding.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Finding" } } } },
+          "400": { "$ref": "#/components/responses/ValidationFailed" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/v1/findings/{id}": {
+      "get": {
+        "summary": "Get a finding",
+        "operationId": "getFinding",
+        "tags": ["Findings"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "The finding.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Finding" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "patch": {
+        "summary": "Update a finding",
+        "operationId": "updateFinding",
+        "tags": ["Findings"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string", "minLength": 1 },
+                  "description": { "type": "object", "additionalProperties": true, "description": "TipTap JSON document. May contain `agentPrompt` blocks; `excerpt` must be verbatim from that agent's system prompt, else 400." },
+                  "status": { "type": "string", "enum": ["open", "acknowledged", "resolved", "ignored"] },
+                  "priority": { "type": "string", "enum": ["none", "low", "medium", "high", "urgent"] },
+                  "tags": { "type": "array", "items": { "type": "string" } },
+                  "findingType": { "type": "integer", "nullable": true },
+                  "assigneeUserId": { "type": "string", "format": "uuid", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated finding.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Finding" } } } },
+          "400": { "$ref": "#/components/responses/ValidationFailed" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/findings/{id}/conversations": {
+      "get": {
+        "summary": "List conversations attached to a finding",
+        "operationId": "listFindingConversations",
+        "tags": ["Findings"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of conversations linked to the finding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/PageEnvelope" },
+                    { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Conversation" } } } }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "post": {
+        "summary": "Attach a conversation to a finding",
+        "operationId": "addConversationToFinding",
+        "tags": ["Findings"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["conversationId"],
+                "properties": {
+                  "conversationId": { "type": "string", "format": "uuid" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Link created (or already present). Idempotent.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FindingConversation" } } } },
+          "400": { "$ref": "#/components/responses/ValidationFailed" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/findings/{id}/conversations/{conversationId}": {
+      "delete": {
+        "summary": "Detach a conversation from a finding",
+        "operationId": "removeConversationFromFinding",
+        "tags": ["Findings"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "conversationId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "204": { "description": "Removed." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/findings/{id}/conversations/{conversationId}/comments": {
+      "get": {
+        "summary": "List comments on a finding-conversation link",
+        "operationId": "listFindingConversationComments",
+        "tags": ["Findings"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "conversationId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comments + annotations on this link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Comment" } }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "post": {
+        "summary": "Add a comment or annotation",
+        "operationId": "createFindingConversationComment",
+        "tags": ["Findings"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "conversationId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["body"],
+                "properties": {
+                  "body": { "type": "string", "minLength": 1 },
+                  "type": { "type": "string", "enum": ["annotation", "comment"], "default": "comment" },
+                  "annotationStartMs": { "type": "integer", "minimum": 0 },
+                  "annotationEndMs": { "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Created comment.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Comment" } } } },
+          "400": { "$ref": "#/components/responses/ValidationFailed" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/experiments/monitor-groups": {
+      "get": {
+        "summary": "List reusable experiment monitor groups",
+        "description": "Returns this organization's saved groups and ordered monitor IDs. Requires Observability and the Experiments v2 rollout flag. Empty groups remain visible if their source monitors were deleted.",
+        "operationId": "listExperimentMonitorGroups",
+        "tags": ["Experiments"],
+        "responses": {
+          "200": { "description": "Saved monitor groups.", "content": { "application/json": { "schema": { "type": "object", "required": ["data"], "properties": { "data": { "type": "array", "items": { "type": "object", "required": ["id", "name", "metricIds"], "properties": {
+            "id": { "type": "string", "format": "uuid" },
+            "name": { "type": "string" },
+            "metricIds": { "type": "array", "items": { "type": "string", "format": "uuid" } }
+          } } } } } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/experiments/preflight": {
+      "post": {
+        "summary": "Review an experiment before launch",
+        "description": "Validates the immutable experiment definition and returns recent traffic, identity quality, leakage, and projected evaluation cost. Requires Observability, the Experiments v2 rollout flag, and owner/admin access.",
+        "operationId": "preflightExperiment",
+        "tags": ["Experiments"],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExperimentCreate" } } } },
+        "responses": {
+          "200": { "description": "Preflight summary." },
+          "400": { "$ref": "#/components/responses/ValidationFailed" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/v1/experiments": {
+      "get": {
+        "summary": "List experiments",
+        "operationId": "listExperiments",
+        "tags": ["Experiments"],
+        "responses": {
+          "200": { "description": "Experiments visible to this organization." },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "summary": "Launch an experiment",
+        "description": "Launches immediately using server time and runs indefinitely until an operator explicitly concludes it. There is no automatic end date or statistical stopping rule. Creates or reuses a monitor group and freezes its definitions for both versions. Zelto does not route callers. Requires Observability, the Experiments v2 rollout flag, and owner/admin access.",
+        "operationId": "createExperiment",
+        "tags": ["Experiments"],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExperimentCreate" } } } },
+        "responses": {
+          "201": { "description": "Experiment launched." },
+          "400": { "$ref": "#/components/responses/ValidationFailed" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/v1/experiments/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "get": {
+        "summary": "Get an experiment and its independent outcome results",
+        "operationId": "getExperiment",
+        "tags": ["Experiments"],
+        "responses": {
+          "200": { "description": "Experiment definition, latest evaluation progress, and outcome-level estimates." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "patch": {
+        "summary": "Update mutable experiment settings",
+        "description": "Only name, description, expected allocation, and notification email addresses may change after launch.",
+        "operationId": "updateExperiment",
+        "tags": ["Experiments"],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "minProperties": 1, "properties": {
+            "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+            "description": { "type": ["string", "null"], "maxLength": 2000 },
+            "expectedArmAPercent": { "type": "integer", "minimum": 1, "maximum": 99 },
+            "notifications": { "type": "object", "required": ["emails"], "properties": {
+              "emails": { "type": "array", "maxItems": 20, "items": { "type": "string", "format": "email" } }
+            } }
+          } } } }
+        },
+        "responses": {
+          "200": { "description": "Settings updated." },
+          "400": { "$ref": "#/components/responses/ValidationFailed" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "summary": "Delete an experiment",
+        "operationId": "deleteExperiment",
+        "tags": ["Experiments"],
+        "responses": {
+          "200": { "description": "Experiment deleted." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/experiments/{id}/conclude": {
+      "post": {
+        "summary": "Permanently conclude an experiment",
+        "description": "Closes the call-time window permanently. Missing observations may still finish.",
+        "operationId": "concludeExperiment",
+        "tags": ["Experiments"],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": {
+          "200": { "description": "Experiment concluded." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/experiments/{id}/evaluations": {
+      "get": {
+        "summary": "List durable evaluation runs",
+        "operationId": "listExperimentEvaluations",
+        "tags": ["Experiments"],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Evaluation runs and progress." }, "401": { "$ref": "#/components/responses/Unauthorized" } }
+      },
+      "post": {
+        "summary": "Retry missing or failed observations",
+        "operationId": "startExperimentEvaluation",
+        "tags": ["Experiments"],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": {
+          "202": { "description": "A run was started or the active run was returned." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/experiments/{id}/evaluations/{runId}": {
+      "get": {
+        "summary": "Get evaluation progress",
+        "operationId": "getExperimentEvaluation",
+        "tags": ["Experiments"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "runId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Evaluation progress." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/experiments/{id}/conversations": {
+      "get": {
+        "summary": "List experiment observations by call",
+        "operationId": "listExperimentConversations",
+        "tags": ["Experiments"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "$ref": "#/components/parameters/Limit" }
+        ],
+        "responses": {
+          "200": { "description": "Outcome-level call observations with terminal statuses and result details." },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/v1/organizations": {
+      "post": {
+        "summary": "Provision an organization (service key)",
+        "description": "Create a Zelto organization headlessly from an automation (e.g. a Slack/CRM provisioner) during a sales call. Finds-or-creates the owner user by email, creates the org and an `owner` member, seeds signup credits, mirrors to the analytical store, and emails the owner an invite to set up their login.\n\nRequires an **admin/service API key** — read-only org-scoped customer keys are rejected with 403. Idempotent: a repeat call with the same owner email and org name returns the existing org (`created.org=false`) instead of duplicating.",
+        "operationId": "createOrganization",
+        "tags": ["Organizations"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "ownerEmail"],
+                "properties": {
+                  "name": { "type": "string", "minLength": 1, "maxLength": 255, "description": "Organization display name." },
+                  "ownerEmail": { "type": "string", "format": "email", "maxLength": 255, "description": "Email of the org owner; the user is found-or-created." },
+                  "timezone": { "type": "string", "description": "IANA timezone (e.g. America/New_York). Defaults to UTC." },
+                  "defaultLocale": { "type": "string", "enum": ["en-us", "es", "pt"], "description": "Default locale for the org. Defaults to en-us." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Organization created.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProvisionedOrganization" }
+              }
+            }
+          },
+          "200": {
+            "description": "Existing organization returned (idempotent repeat).",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProvisionedOrganization" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationFailed" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/v1/action-checks": {
+      "post": {
+        "operationId": "checkProposedAction",
+        "tags": [
+          "Action checks"
+        ],
+        "summary": "Check a proposed action before committing it",
+        "description": "Compares supplied scalar identifiers and tool statuses synchronously. Does not book or fetch CRM state. Await allowed=true before committing; do not commit on errors or timeouts. Maximum 64 KiB.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionCheckInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decision for the supplied snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionCheckDecision"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Agent not found in the authenticated organization"
+          },
+          "413": {
+            "description": "Body exceeds 64 KiB"
+          }
+        }
+      }
+    },
+    "/v1/reports/costs": {
+      "get": {
+        "operationId": "getCostReport",
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Live cost report",
+        "description": "Requires Reports entitlement. Inclusive UTC dates, default 14 days and maximum 90. Company scope follows call attribution, not shared-agent membership. Do not sum provider charges and trace estimates; they can overlap. Missing telemetry is listed in failures.",
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Report with effective window",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerCostReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameters"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Reports entitlement required"
+          }
+        }
+      }
+    },
+    "/v1/reports/transfers": {
+      "get": {
+        "operationId": "getTransferReport",
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Live transfer analysis",
+        "description": "Requires Reports entitlement. Inclusive UTC dates, default 14 days and maximum 90. Company scope follows call attribution, not shared-agent membership.",
+        "parameters": [
+          {
+            "name": "metricId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "companyId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Report with effective window",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerTransferReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameters"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Reports entitlement required"
+          },
+          "404": {
+            "description": "Transfer monitor not found"
+          }
+        }
+      }
+    },
+    "/v1/agents/{id}/versions": {
+      "post": {
+        "summary": "Register an agent version",
+        "operationId": "registerAgentVersion",
+        "tags": [
+          "Agents"
+        ],
+        "description": "Register a release prompt and context before calls arrive. Requires a key belonging to an organization owner or admin. Repeating the same values returns the existing ID; changes require a new label. Send that label as version on every call for the same agent. Does not deploy the agent or route traffic. See /docs/agent-versions.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterAgentVersion"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Version registered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "created"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "created": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Identical version already registered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "created"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "created": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or human agent."
+          },
+          "403": {
+            "description": "Requires an organization owner or admin."
+          },
+          "409": {
+            "description": "The label already exists with a different prompt or configuration. Use a new label."
+          },
+          "500": {
+            "description": "Could not register the version."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    }
+  }
+}

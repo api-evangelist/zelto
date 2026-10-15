@@ -1,0 +1,32 @@
+generated: '2026-10-15'
+method: generated
+generator: extract-docs-artifacts.py skills (local)
+source: openapi/zelto-openapi.json
+skills:
+- file: skills/zelto-launch-experiment.md
+  name: zelto-launch-experiment
+  api: openapi/zelto-openapi.json
+  operations:
+  - preflightExperiment
+  - createExperiment
+  - getExperiment
+- file: skills/zelto-create-finding-with-conversation.md
+  name: zelto-create-finding-with-conversation
+  api: openapi/zelto-openapi.json
+  operations:
+  - createFinding
+  - addConversationToFinding
+  - listFindingConversations
+- file: skills/zelto-fetch-conversation-transcript.md
+  name: zelto-fetch-conversation-transcript
+  api: openapi/zelto-openapi.json
+  operations:
+  - listConversations
+  - getConversation
+  - getTranscript
+- file: skills/zelto-list-and-get-agent.md
+  name: zelto-list-and-get-agent
+  api: openapi/zelto-openapi.json
+  operations:
+  - listAgents
+  - getAgent

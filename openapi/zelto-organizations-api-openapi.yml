@@ -1,0 +1,145 @@
+openapi: 3.2.0
+info:
+  title: Zelto REST Organizations API
+  version: v1
+  description: Programmatic access to your Zelto organization. Every endpoint is scoped to the organization the API key belongs to. Mint a key at Settings → Integrations → API Call Upload.
+servers:
+- url: https://api.zelto.ai
+  description: Production
+security:
+- bearerAuth: []
+tags:
+- name: Organizations
+  description: Headless org provisioning. Requires an admin/service API key (not a read-only org-scoped customer key).
+paths:
+  /v1/organizations:
+    post:
+      summary: Provision an organization (service key)
+      description: 'Create a Zelto organization headlessly from an automation (e.g. a Slack/CRM provisioner) during a sales call. Finds-or-creates the owner user by email, creates the org and an `owner` member, seeds signup credits, mirrors to the analytical store, and emails the owner an invite to set up their login.
+
+
+        Requires an **admin/service API key** — read-only org-scoped customer keys are rejected with 403. Idempotent: a repeat call with the same owner email and org name returns the existing org (`created.org=false`) instead of duplicating.'
+      operationId: createOrganization
+      tags:
+      - Organizations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - name
+              - ownerEmail
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: Organization display name.
+                ownerEmail:
+                  type: string
+                  format: email
+                  maxLength: 255
+                  description: Email of the org owner; the user is found-or-created.
+                timezone:
+                  type: string
+                  description: IANA timezone (e.g. America/New_York). Defaults to UTC.
+                defaultLocale:
+                  type: string
+                  enum:
+                  - en-us
+                  - es
+                  - pt
+                  description: Default locale for the org. Defaults to en-us.
+      responses:
+        '201':
+          description: Organization created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProvisionedOrganization'
+        '200':
+          description: Existing organization returned (idempotent repeat).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProvisionedOrganization'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+components:
+  responses:
+    Forbidden:
+      description: The key is valid but not allowed to perform this operation (e.g. a read-only org-scoped customer key calling a service-only endpoint).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationFailed:
+      description: Request body failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    ProvisionedOrganization:
+      type: object
+      required:
+      - id
+      - slug
+      - orgUrl
+      - ownerUserId
+      - created
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+          description: URL slug, `<name>-<8 hex>`.
+        orgUrl:
+          type: string
+          format: uri
+          description: Absolute URL to the org dashboard.
+        ownerUserId:
+          type: string
+          format: uuid
+        created:
+          type: object
+          required:
+          - org
+          - user
+          description: Whether each entity was newly created (vs. reused).
+          properties:
+            org:
+              type: boolean
+            user:
+              type: boolean
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message, e.g. Unauthorized or Validation failed.
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'Send `Authorization: Bearer YOUR_API_KEY`. The key resolves to a single organization.'
