@@ -299,31 +299,6 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 components:
-  responses:
-    Forbidden:
-      description: The key is valid but not allowed to perform this operation (e.g. a read-only org-scoped customer key calling a service-only endpoint).
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    Unauthorized:
-      description: Missing or invalid API key.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    NotFound:
-      description: Resource not found in your organization.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    ValidationFailed:
-      description: Request body failed validation.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
   schemas:
     ExperimentCreate:
       type: object
@@ -437,6 +412,31 @@ components:
         details:
           type: object
           additionalProperties: true
+  responses:
+    Forbidden:
+      description: The key is valid but not allowed to perform this operation (e.g. a read-only org-scoped customer key calling a service-only endpoint).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationFailed:
+      description: Request body failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found in your organization.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
   parameters:
     Limit:
       name: limit

@@ -1,7 +1,7 @@
 {
   "provider": "zelto",
   "sources": [
-    "zelto-openapi.json"
+    "_original/zelto-openapi.json"
   ],
   "outputs": [
     "zelto-action-checks-api-openapi.yml",
@@ -16,16 +16,27 @@
     "zelto-reports-api-openapi.yml",
     "zelto-reviews-api-openapi.yml"
   ],
-  "archived": [
-    "archived openapi/zelto-openapi.json"
-  ],
+  "archived": [],
   "errors": [],
   "warnings": [],
   "notes": [
+    "sourced from openapi/_original/ (1 archived document(s)); previously refined output at the top level was skipped rather than re-split",
     "zelto-openapi.json: upgraded openapi 3.1.0 -> OpenAPI 3.2.0",
     "zelto-openapi.json: declared missing tag: Action checks",
     "zelto-openapi.json: declared missing tag: Reports",
-    "apis.yml register: written (+11 apis, 11 total)"
+    "apis.yml register: already-registered"
   ],
-  "skipped": []
+  "skipped": [
+    "zelto-action-checks-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "zelto-agents-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "zelto-buckets-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "zelto-companies-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "zelto-conversations-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "zelto-customer-metrics-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "zelto-experiments-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "zelto-findings-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "zelto-organizations-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "zelto-reports-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "zelto-reviews-api-openapi.yml: previously refined output, superseded by openapi/_original/"
+  ]
 }

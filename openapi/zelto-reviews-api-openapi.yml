@@ -71,6 +71,19 @@ paths:
           $ref: '#/components/responses/NotFound'
 components:
   schemas:
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message, e.g. Unauthorized or Validation failed.
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
     PageEnvelope:
       type: object
       required:
@@ -131,27 +144,7 @@ components:
         updatedAt:
           type: string
           format: date-time
-    Error:
-      type: object
-      required:
-      - error
-      properties:
-        error:
-          type: string
-          description: Human-readable error message, e.g. Unauthorized or Validation failed.
-        message:
-          type: string
-        details:
-          type: object
-          additionalProperties: true
   parameters:
-    Cursor:
-      name: cursor
-      in: query
-      required: false
-      description: Opaque pagination cursor. Pass the `nextCursor` returned by the previous page.
-      schema:
-        type: string
     Limit:
       name: limit
       in: query
@@ -162,6 +155,13 @@ components:
         minimum: 1
         maximum: 200
         default: 50
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque pagination cursor. Pass the `nextCursor` returned by the previous page.
+      schema:
+        type: string
   responses:
     Unauthorized:
       description: Missing or invalid API key.

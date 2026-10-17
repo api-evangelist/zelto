@@ -193,99 +193,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
 components:
   schemas:
-    CallIngestTurn:
-      type: object
-      required:
-      - role
-      - content
-      properties:
-        role:
-          type: string
-          enum:
-          - user
-          - assistant
-          - system
-          - tool
-        content:
-          type: string
-          minLength: 1
-        startSeconds:
-          type: number
-          minimum: 0
-        endSeconds:
-          type: number
-          minimum: 0
-        words:
-          type: array
-          description: Optional word-level audio timing used for synchronized transcript playback.
-          items:
-            type: object
-            required:
-            - word
-            - startSeconds
-            properties:
-              word:
-                type: string
-                minLength: 1
-              startSeconds:
-                type: number
-                minimum: 0
-              endSeconds:
-                type: number
-                minimum: 0
-    PageEnvelope:
-      type: object
-      required:
-      - data
-      - nextCursor
-      properties:
-        data:
-          type: array
-          items: {}
-        nextCursor:
-          type: string
-          nullable: true
-    Conversation:
-      type: object
-      required:
-      - id
-      - agentId
-      - name
-      - source
-      - createdAt
-      - updatedAt
-      properties:
-        id:
-          type: string
-          format: uuid
-        agentId:
-          type: string
-          format: uuid
-        receiverId:
-          type: string
-          format: uuid
-          nullable: true
-        name:
-          type: string
-        referenceId:
-          type: string
-          nullable: true
-        source:
-          type: string
-          description: Where the call came from, e.g. `vapi`, `retell`, `speechify`, `livekit`, `upload`.
-        endedReason:
-          type: string
-          nullable: true
-        cost:
-          type: string
-          nullable: true
-          description: Provider-reported cost in dollars, as a string for precision.
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
     CallIngest:
       type: object
       required:
@@ -382,6 +289,76 @@ components:
           allOf:
           - $ref: '#/components/schemas/AgentVersionConfig'
           description: Context for the version that handled this call. Requires the version field. Captured when the version is observed; does not overwrite an existing configuration snapshot. Use config when registering through POST /v1/agents/{id}/versions.
+    Conversation:
+      type: object
+      required:
+      - id
+      - agentId
+      - name
+      - source
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        agentId:
+          type: string
+          format: uuid
+        receiverId:
+          type: string
+          format: uuid
+          nullable: true
+        name:
+          type: string
+        referenceId:
+          type: string
+          nullable: true
+        source:
+          type: string
+          description: Where the call came from, e.g. `vapi`, `retell`, `speechify`, `livekit`, `upload`.
+        endedReason:
+          type: string
+          nullable: true
+        cost:
+          type: string
+          nullable: true
+          description: Provider-reported cost in dollars, as a string for precision.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AgentVersionConfig:
+      type: object
+      additionalProperties: true
+      description: Complete version context as a JSON object, up to 64 KiB serialized as UTF-8. Can include llm, stt, tts, tools, workflows, retrieval, and custom settings. Records context only; does not deploy or execute this configuration. Do not include secrets.
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message, e.g. Unauthorized or Validation failed.
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    PageEnvelope:
+      type: object
+      required:
+      - data
+      - nextCursor
+      properties:
+        data:
+          type: array
+          items: {}
+        nextCursor:
+          type: string
+          nullable: true
     Transcript:
       type: object
       required:
@@ -406,42 +383,53 @@ components:
         createdAt:
           type: string
           format: date-time
-    Error:
+    CallIngestTurn:
       type: object
       required:
-      - error
+      - role
+      - content
       properties:
-        error:
+        role:
           type: string
-          description: Human-readable error message, e.g. Unauthorized or Validation failed.
-        message:
+          enum:
+          - user
+          - assistant
+          - system
+          - tool
+        content:
           type: string
-        details:
-          type: object
-          additionalProperties: true
-    AgentVersionConfig:
-      type: object
-      additionalProperties: true
-      description: Complete version context as a JSON object, up to 64 KiB serialized as UTF-8. Can include llm, stt, tts, tools, workflows, retrieval, and custom settings. Records context only; does not deploy or execute this configuration. Do not include secrets.
-  parameters:
-    Cursor:
-      name: cursor
-      in: query
-      required: false
-      description: Opaque pagination cursor. Pass the `nextCursor` returned by the previous page.
-      schema:
-        type: string
-    Limit:
-      name: limit
-      in: query
-      required: false
-      description: Items per page. Default 50, max 200.
-      schema:
-        type: integer
-        minimum: 1
-        maximum: 200
-        default: 50
+          minLength: 1
+        startSeconds:
+          type: number
+          minimum: 0
+        endSeconds:
+          type: number
+          minimum: 0
+        words:
+          type: array
+          description: Optional word-level audio timing used for synchronized transcript playback.
+          items:
+            type: object
+            required:
+            - word
+            - startSeconds
+            properties:
+              word:
+                type: string
+                minLength: 1
+              startSeconds:
+                type: number
+                minimum: 0
+              endSeconds:
+                type: number
+                minimum: 0
   responses:
+    ValidationFailed:
+      description: Request body failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
     Unauthorized:
       description: Missing or invalid API key.
       content:
@@ -454,12 +442,24 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-    ValidationFailed:
-      description: Request body failed validation.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Items per page. Default 50, max 200.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque pagination cursor. Pass the `nextCursor` returned by the previous page.
+      schema:
+        type: string
   securitySchemes:
     bearerAuth:
       type: http

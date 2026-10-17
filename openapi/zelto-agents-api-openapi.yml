@@ -126,33 +126,6 @@ paths:
           $ref: '#/components/responses/NotFound'
 components:
   schemas:
-    PageEnvelope:
-      type: object
-      required:
-      - data
-      - nextCursor
-      properties:
-        data:
-          type: array
-          items: {}
-        nextCursor:
-          type: string
-          nullable: true
-    RegisterAgentVersion:
-      type: object
-      required:
-      - version
-      properties:
-        version:
-          type: string
-          minLength: 1
-          maxLength: 255
-          description: 'Case-sensitive release label after trimming whitespace. The draft: and generated: prefixes are reserved.'
-        systemPrompt:
-          type: string
-          maxLength: 200000
-        config:
-          $ref: '#/components/schemas/AgentVersionConfig'
     Agent:
       type: object
       required:
@@ -185,6 +158,10 @@ components:
         updatedAt:
           type: string
           format: date-time
+    AgentVersionConfig:
+      type: object
+      additionalProperties: true
+      description: Complete version context as a JSON object, up to 64 KiB serialized as UTF-8. Can include llm, stt, tts, tools, workflows, retrieval, and custom settings. Records context only; does not deploy or execute this configuration. Do not include secrets.
     Error:
       type: object
       required:
@@ -198,28 +175,33 @@ components:
         details:
           type: object
           additionalProperties: true
-    AgentVersionConfig:
+    PageEnvelope:
       type: object
-      additionalProperties: true
-      description: Complete version context as a JSON object, up to 64 KiB serialized as UTF-8. Can include llm, stt, tts, tools, workflows, retrieval, and custom settings. Records context only; does not deploy or execute this configuration. Do not include secrets.
-  parameters:
-    Cursor:
-      name: cursor
-      in: query
-      required: false
-      description: Opaque pagination cursor. Pass the `nextCursor` returned by the previous page.
-      schema:
-        type: string
-    Limit:
-      name: limit
-      in: query
-      required: false
-      description: Items per page. Default 50, max 200.
-      schema:
-        type: integer
-        minimum: 1
-        maximum: 200
-        default: 50
+      required:
+      - data
+      - nextCursor
+      properties:
+        data:
+          type: array
+          items: {}
+        nextCursor:
+          type: string
+          nullable: true
+    RegisterAgentVersion:
+      type: object
+      required:
+      - version
+      properties:
+        version:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: 'Case-sensitive release label after trimming whitespace. The draft: and generated: prefixes are reserved.'
+        systemPrompt:
+          type: string
+          maxLength: 200000
+        config:
+          $ref: '#/components/schemas/AgentVersionConfig'
   responses:
     Unauthorized:
       description: Missing or invalid API key.
@@ -233,6 +215,24 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Items per page. Default 50, max 200.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque pagination cursor. Pass the `nextCursor` returned by the previous page.
+      schema:
+        type: string
   securitySchemes:
     bearerAuth:
       type: http

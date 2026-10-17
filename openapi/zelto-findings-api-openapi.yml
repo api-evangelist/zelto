@@ -409,6 +409,122 @@ paths:
           $ref: '#/components/responses/NotFound'
 components:
   schemas:
+    Comment:
+      type: object
+      required:
+      - id
+      - body
+      - type
+      - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        body:
+          type: string
+        type:
+          type: string
+          enum:
+          - annotation
+          - comment
+        annotationStartMs:
+          type: integer
+          nullable: true
+        annotationEndMs:
+          type: integer
+          nullable: true
+        authorUserId:
+          type: string
+          format: uuid
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    Conversation:
+      type: object
+      required:
+      - id
+      - agentId
+      - name
+      - source
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        agentId:
+          type: string
+          format: uuid
+        receiverId:
+          type: string
+          format: uuid
+          nullable: true
+        name:
+          type: string
+        referenceId:
+          type: string
+          nullable: true
+        source:
+          type: string
+          description: Where the call came from, e.g. `vapi`, `retell`, `speechify`, `livekit`, `upload`.
+        endedReason:
+          type: string
+          nullable: true
+        cost:
+          type: string
+          nullable: true
+          description: Provider-reported cost in dollars, as a string for precision.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message, e.g. Unauthorized or Validation failed.
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    PageEnvelope:
+      type: object
+      required:
+      - data
+      - nextCursor
+      properties:
+        data:
+          type: array
+          items: {}
+        nextCursor:
+          type: string
+          nullable: true
+    FindingConversation:
+      type: object
+      required:
+      - findingId
+      - conversationId
+      - createdAt
+      properties:
+        findingId:
+          type: string
+          format: uuid
+        conversationId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        alreadyExisted:
+          type: boolean
+          description: Returned on idempotent re-add.
     Finding:
       type: object
       required:
@@ -461,141 +577,13 @@ components:
         updatedAt:
           type: string
           format: date-time
-    PageEnvelope:
-      type: object
-      required:
-      - data
-      - nextCursor
-      properties:
-        data:
-          type: array
-          items: {}
-        nextCursor:
-          type: string
-          nullable: true
-    Conversation:
-      type: object
-      required:
-      - id
-      - agentId
-      - name
-      - source
-      - createdAt
-      - updatedAt
-      properties:
-        id:
-          type: string
-          format: uuid
-        agentId:
-          type: string
-          format: uuid
-        receiverId:
-          type: string
-          format: uuid
-          nullable: true
-        name:
-          type: string
-        referenceId:
-          type: string
-          nullable: true
-        source:
-          type: string
-          description: Where the call came from, e.g. `vapi`, `retell`, `speechify`, `livekit`, `upload`.
-        endedReason:
-          type: string
-          nullable: true
-        cost:
-          type: string
-          nullable: true
-          description: Provider-reported cost in dollars, as a string for precision.
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-    FindingConversation:
-      type: object
-      required:
-      - findingId
-      - conversationId
-      - createdAt
-      properties:
-        findingId:
-          type: string
-          format: uuid
-        conversationId:
-          type: string
-          format: uuid
-        createdAt:
-          type: string
-          format: date-time
-        alreadyExisted:
-          type: boolean
-          description: Returned on idempotent re-add.
-    Error:
-      type: object
-      required:
-      - error
-      properties:
-        error:
-          type: string
-          description: Human-readable error message, e.g. Unauthorized or Validation failed.
-        message:
-          type: string
-        details:
-          type: object
-          additionalProperties: true
-    Comment:
-      type: object
-      required:
-      - id
-      - body
-      - type
-      - createdAt
-      properties:
-        id:
-          type: string
-          format: uuid
-        body:
-          type: string
-        type:
-          type: string
-          enum:
-          - annotation
-          - comment
-        annotationStartMs:
-          type: integer
-          nullable: true
-        annotationEndMs:
-          type: integer
-          nullable: true
-        authorUserId:
-          type: string
-          format: uuid
-          nullable: true
-        createdAt:
-          type: string
-          format: date-time
-  parameters:
-    Cursor:
-      name: cursor
-      in: query
-      required: false
-      description: Opaque pagination cursor. Pass the `nextCursor` returned by the previous page.
-      schema:
-        type: string
-    Limit:
-      name: limit
-      in: query
-      required: false
-      description: Items per page. Default 50, max 200.
-      schema:
-        type: integer
-        minimum: 1
-        maximum: 200
-        default: 50
   responses:
+    ValidationFailed:
+      description: Request body failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
     Unauthorized:
       description: Missing or invalid API key.
       content:
@@ -608,12 +596,24 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-    ValidationFailed:
-      description: Request body failed validation.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Items per page. Default 50, max 200.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque pagination cursor. Pass the `nextCursor` returned by the previous page.
+      schema:
+        type: string
   securitySchemes:
     bearerAuth:
       type: http

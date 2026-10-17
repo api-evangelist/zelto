@@ -198,18 +198,19 @@ paths:
           $ref: '#/components/responses/NotFound'
 components:
   schemas:
-    PageEnvelope:
+    Error:
       type: object
       required:
-      - data
-      - nextCursor
+      - error
       properties:
-        data:
-          type: array
-          items: {}
-        nextCursor:
+        error:
           type: string
-          nullable: true
+          description: Human-readable error message, e.g. Unauthorized or Validation failed.
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
     Company:
       type: object
       required:
@@ -235,38 +236,25 @@ components:
         updatedAt:
           type: string
           format: date-time
-    Error:
+    PageEnvelope:
       type: object
       required:
-      - error
+      - data
+      - nextCursor
       properties:
-        error:
+        data:
+          type: array
+          items: {}
+        nextCursor:
           type: string
-          description: Human-readable error message, e.g. Unauthorized or Validation failed.
-        message:
-          type: string
-        details:
-          type: object
-          additionalProperties: true
-  parameters:
-    Cursor:
-      name: cursor
-      in: query
-      required: false
-      description: Opaque pagination cursor. Pass the `nextCursor` returned by the previous page.
-      schema:
-        type: string
-    Limit:
-      name: limit
-      in: query
-      required: false
-      description: Items per page. Default 50, max 200.
-      schema:
-        type: integer
-        minimum: 1
-        maximum: 200
-        default: 50
+          nullable: true
   responses:
+    ValidationFailed:
+      description: Request body failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
     Unauthorized:
       description: Missing or invalid API key.
       content:
@@ -279,12 +267,24 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-    ValidationFailed:
-      description: Request body failed validation.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Items per page. Default 50, max 200.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque pagination cursor. Pass the `nextCursor` returned by the previous page.
+      schema:
+        type: string
   securitySchemes:
     bearerAuth:
       type: http
