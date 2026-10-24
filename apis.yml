@@ -12,7 +12,17 @@ x-tier-reason: enrichment pass 2026-10-15 (modular-v1; was harvest)
 specificationVersion: '0.20'
 created: '2026-10-15'
 modified: '2026-10-15'
+x-docs-platform: mintlify
+x-docs-platform-confidence: medium
+x-docs-platform-checked: 2026-10-17
 tags:
+- Company
+- Voice AI
+- QA
+- Production
+- Analytics
+- Monitoring
+tags_raw:
 - Company
 - VoiceAI
 - QA
@@ -264,6 +274,8 @@ apis:
   humanURL: https://docs.zelto.ai/api-reference
   baseURL: https://api.zelto.ai
   tags:
+  - Organization
+  tags_raw:
   - Organizations
   properties:
   - type: OpenAPI
